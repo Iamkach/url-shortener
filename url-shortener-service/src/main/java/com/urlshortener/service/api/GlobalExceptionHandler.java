@@ -1,5 +1,6 @@
 package com.urlshortener.service.api;
 
+import com.urlshortener.service.service.RateLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +22,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, Object>> notFound(NoSuchElementException e) {
         return body(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> rateLimited(RateLimitExceededException e) {
+        return body(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
     }
 
     private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message) {

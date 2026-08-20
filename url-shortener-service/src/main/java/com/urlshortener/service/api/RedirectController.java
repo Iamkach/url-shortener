@@ -1,6 +1,7 @@
 package com.urlshortener.service.api;
 
 import com.urlshortener.service.domain.ShortUrl;
+import com.urlshortener.service.service.ClickRecordingService;
 import com.urlshortener.service.service.UrlShortenerService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +18,17 @@ import java.net.URI;
 public class RedirectController {
 
     private final UrlShortenerService service;
+    private final ClickRecordingService clickRecordingService;
 
     @Operation(summary = "Resolve a short code and redirect to the original URL")
     @GetMapping("/{code}")
     public ResponseEntity<Void> redirect(@PathVariable String code) {
         ShortUrl entity = service.resolve(code);
-        return ResponseEntity.status(HttpStatus.FOUND)
+        ResponseEntity<Void> response = ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(entity.getLongUrl()))
                 .build();
+        // Fired after the response is built so a slow/failing analytics write never delays the redirect (spec.md B4).
+        clickRecordingService.recordAsync(code);
+        return response;
     }
 }
