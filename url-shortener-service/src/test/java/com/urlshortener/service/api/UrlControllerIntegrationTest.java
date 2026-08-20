@@ -55,4 +55,35 @@ class UrlControllerIntegrationTest {
         mockMvc.perform(get("/api/urls/doesnotexist"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void create_withCustomAlias_usesAliasAsShortCode() throws Exception {
+        String body = objectMapper.writeValueAsString(
+                Map.of("longUrl", "https://example.com/custom-alias-test", "customAlias", "spec003-my-brand"));
+
+        mockMvc.perform(post("/api/urls").contentType("application/json").content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.shortCode").value("spec003-my-brand"));
+    }
+
+    @Test
+    void create_withDuplicateCustomAlias_returns409() throws Exception {
+        String body = objectMapper.writeValueAsString(
+                Map.of("longUrl", "https://example.com/dup-1", "customAlias", "spec003-dup-alias"));
+        mockMvc.perform(post("/api/urls").contentType("application/json").content(body))
+                .andExpect(status().isCreated());
+
+        String duplicateBody = objectMapper.writeValueAsString(
+                Map.of("longUrl", "https://example.com/dup-2", "customAlias", "spec003-dup-alias"));
+        mockMvc.perform(post("/api/urls").contentType("application/json").content(duplicateBody))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void create_withReservedCustomAlias_returns400() throws Exception {
+        String body = objectMapper.writeValueAsString(Map.of("longUrl", "https://example.com/reserved", "customAlias", "api"));
+
+        mockMvc.perform(post("/api/urls").contentType("application/json").content(body))
+                .andExpect(status().isBadRequest());
+    }
 }

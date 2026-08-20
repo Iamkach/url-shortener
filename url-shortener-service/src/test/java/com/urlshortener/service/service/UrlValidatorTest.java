@@ -34,4 +34,32 @@ class UrlValidatorTest {
         String longUrl = "https://example.com/" + "a".repeat(2100);
         assertThatThrownBy(() -> validator.validate(longUrl)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void validateAlias_allowsNull() {
+        assertThatCode(() -> validator.validateAlias(null)).doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"my-brand", "my_brand", "Brand123", "a"})
+    void validateAlias_acceptsValidCharsetAndLength(String alias) {
+        assertThatCode(() -> validator.validateAlias(alias)).doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"has space", "has/slash", "has.dot", ""})
+    void validateAlias_rejectsInvalidCharset(String alias) {
+        assertThatThrownBy(() -> validator.validateAlias(alias)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void validateAlias_rejectsExcessiveLength() {
+        assertThatThrownBy(() -> validator.validateAlias("a".repeat(65))).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"api", "API", "swagger-ui", "h2-console", "actuator", "urls"})
+    void validateAlias_rejectsReservedWords(String alias) {
+        assertThatThrownBy(() -> validator.validateAlias(alias)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

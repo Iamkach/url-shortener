@@ -71,4 +71,31 @@ class UrlShortenerServiceTest {
 
         assertThatThrownBy(() -> service.resolve("missing")).isInstanceOf(NoSuchElementException.class);
     }
+
+    @Test
+    void create_withCustomAlias_usesAliasVerbatimAsShortCode() {
+        when(repository.findByShortCode("my-brand")).thenReturn(Optional.empty());
+        when(repository.save(any(ShortUrl.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ShortUrl result = service.create("https://example.com", null, "my-brand");
+
+        assertThat(result.getShortCode()).isEqualTo("my-brand");
+        verify(repository, org.mockito.Mockito.times(1)).save(any(ShortUrl.class));
+    }
+
+    @Test
+    void create_withCustomAlias_rejectsWhenAlreadyTaken() {
+        ShortUrl existing = new ShortUrl();
+        existing.setShortCode("my-brand");
+        when(repository.findByShortCode("my-brand")).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.create("https://example.com", null, "my-brand"))
+                .isInstanceOf(AliasAlreadyExistsException.class);
+    }
+
+    @Test
+    void create_withCustomAlias_rejectsReservedWord() {
+        assertThatThrownBy(() -> service.create("https://example.com", null, "api"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

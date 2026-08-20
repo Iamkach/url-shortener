@@ -1,7 +1,8 @@
 # url-shortener-service
 
-Core URL shortener product. See `specs/001-core-url-shortener/` (core shorten/redirect)
-and `specs/002-click-analytics-ratelimit/` (analytics + rate limiting) for the
+Core URL shortener product. See `specs/001-core-url-shortener/` (core shorten/redirect),
+`specs/002-click-analytics-ratelimit/` (analytics + rate limiting), and
+`specs/003-custom-alias-expiry/` (custom aliases + expiry enforcement) for the
 requirements and design this module implements.
 
 ## Run
@@ -20,10 +21,24 @@ OpenAPI/Swagger UI: `http://localhost:8080/swagger-ui.html`.
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/urls` | Shorten a URL. Body: `{"longUrl": "...", "expiresAt"?: "ISO-8601"}`. Rate-limited (see below) |
-| `GET` | `/api/urls/{code}` | Fetch metadata for a short code (no redirect) |
+| `POST` | `/api/urls` | Shorten a URL. Body: `{"longUrl": "...", "expiresAt"?: "ISO-8601", "customAlias"?: "my-brand"}`. Rate-limited (see below) |
+| `GET` | `/api/urls/{code}` | Fetch metadata for a short code (no redirect). Still returns `200` even if the link has expired (soft-expire) |
 | `GET` | `/api/urls/{code}/analytics` | `{"shortCode", "totalClicks", "lastAccessedAt"}` |
-| `GET` | `/{code}` | Resolve and `302` redirect to the original URL; records a click (async, off the response path) |
+| `GET` | `/{code}` | Resolve and `302` redirect to the original URL; `410 Gone` if expired; records a click (async, off the response path) |
+
+## Custom Aliases & Expiry
+
+`customAlias` (optional) is used verbatim as the short code instead of the generated
+Base62 one. Rules (see `specs/003-custom-alias-expiry/spec.md` for the full ambiguity-
+resolution writeup):
+- Must match `[a-zA-Z0-9_-]{1,64}`, else `400`.
+- Reserved words (`api`, `urls`, `swagger-ui`, `v3`, `h2-console`, `actuator`,
+  `favicon.ico`, `robots.txt`) are blocked, `400` — they'd otherwise shadow real routes.
+- Already in use → `409 Conflict`.
+
+`expiresAt` is enforced at read time (no background sweep): once passed, `GET /{code}`
+returns `410 Gone` instead of redirecting, but the row and its analytics stay readable
+via `GET /api/urls/{code}` (soft-expire).
 
 ## Rate Limiting
 
@@ -54,8 +69,9 @@ curl -i http://localhost:8080/0004   # 302 redirect
 mvn -pl url-shortener-service -am test
 ```
 
-32 tests: unit tests for Base62 encoding, URL validation, and the token-bucket rate
+56 tests: unit tests for Base62 encoding, URL/alias validation, and the token-bucket rate
 limiter; service-layer tests against mocked repositories; and `@SpringBootTest`/MockMvc
 integration tests for shorten/redirect, analytics (polls with Awaitility past the async
-click-recording write), and rate-limit enforcement, all against a real (in-memory) H2
-instance.
+click-recording write), rate-limit enforcement, custom-alias collision/reserved-word
+handling, and expiry enforcement (soft-expire boundary case), all against a real
+(in-memory) H2 instance.
