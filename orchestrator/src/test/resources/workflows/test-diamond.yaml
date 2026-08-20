@@ -1,0 +1,35 @@
+id: test-diamond
+name: Test fixture - diamond DAG exercising parallel dispatch, fallback and rollback
+nodes:
+  - id: A
+    stage: REQUIREMENTS
+    dependsOn: []
+    requiresApproval: false
+    maxRetries: 1
+    compensation: true
+
+  - id: B
+    stage: IMPLEMENTATION
+    dependsOn: [A]
+    requiresApproval: false
+    maxRetries: 2
+    compensation: true
+
+  - id: C
+    stage: DOCUMENTATION
+    dependsOn: [A]
+    requiresApproval: false
+    maxRetries: 0
+    fallbackNodeId: C_FALLBACK
+
+  - id: C_FALLBACK
+    stage: DOCUMENTATION
+    dependsOn: [A]
+    requiresApproval: false
+    maxRetries: 0
+
+  - id: D
+    stage: RELEASE_READINESS
+    dependsOn: [B, C]
+    requiresApproval: true
+    maxRetries: 0

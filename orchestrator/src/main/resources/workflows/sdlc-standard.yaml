@@ -1,0 +1,54 @@
+id: sdlc-standard
+name: Standard SDLC Workflow (requirements -> design -> implementation -> [testing, documentation] -> release readiness)
+nodes:
+  - id: requirements
+    stage: REQUIREMENTS
+    dependsOn: []
+    requiresApproval: true
+    maxRetries: 0
+    compensation: false
+    exitGate: "requireArtifact:specPath"
+
+  - id: design
+    stage: DESIGN
+    dependsOn: [requirements]
+    requiresApproval: false
+    maxRetries: 1
+    compensation: false
+    entryGate: "requireContext:requirements.specPath"
+    exitGate: "requireArtifact:designPath"
+
+  - id: implementation
+    stage: IMPLEMENTATION
+    dependsOn: [design]
+    requiresApproval: false
+    maxRetries: 2
+    compensation: true
+    entryGate: "requireContext:design.designPath"
+    exitGate: "requireArtifact:commit"
+
+  - id: testing
+    stage: TESTING
+    dependsOn: [implementation]
+    requiresApproval: false
+    maxRetries: 2
+    compensation: false
+    entryGate: "requireContext:implementation.commit"
+    exitGate: "requireArtifact:testReport"
+
+  - id: documentation
+    stage: DOCUMENTATION
+    dependsOn: [implementation]
+    requiresApproval: false
+    maxRetries: 1
+    compensation: false
+    entryGate: "requireContext:implementation.commit"
+    exitGate: "requireArtifact:docsPath"
+
+  - id: release_readiness
+    stage: RELEASE_READINESS
+    dependsOn: [testing, documentation]
+    requiresApproval: true
+    maxRetries: 0
+    compensation: false
+    entryGate: "requireContext:testing.testReport"

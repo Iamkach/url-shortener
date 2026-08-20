@@ -1,0 +1,10 @@
+id: test-gate
+name: Test fixture - single node entry-gate denial
+nodes:
+  - id: only
+    stage: IMPLEMENTATION
+    dependsOn: []
+    requiresApproval: false
+    maxRetries: 0
+    compensation: false
+    entryGate: "denyIfContext:blockNode=true"
