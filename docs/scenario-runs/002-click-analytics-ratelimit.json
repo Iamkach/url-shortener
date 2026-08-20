@@ -1,0 +1,240 @@
+{
+  "scenario": "002-click-analytics-ratelimit",
+  "type": "brownfield",
+  "run": {
+    "id": "bf7f7fed-4757-4698-954b-aff16b345dd5",
+    "workflowDefinitionId": "sdlc-standard",
+    "status": "COMPLETED",
+    "startedAt": "2026-08-20T04:18:56.052768Z",
+    "completedAt": "2026-08-20T04:19:24.991448Z",
+    "createdBy": "human-product-owner",
+    "context": {
+      "implementation.commit": "35942fa",
+      "design.designPath": "specs/002-click-analytics-ratelimit/plan.md",
+      "requirements.specPath": "specs/002-click-analytics-ratelimit/spec.md",
+      "feature": "002-click-analytics-ratelimit",
+      "testing.testReport": "url-shortener-service/target/surefire-reports (32 tests, 0 failures; fixed a rate-limit path-pattern bug found by RateLimitIntegrationTest)",
+      "documentation.docsPath": "url-shortener-service/README.md"
+    },
+    "nodes": [
+      {
+        "nodeId": "requirements",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:18:56.057739Z",
+        "endedAt": "2026-08-20T04:19:03.539563Z",
+        "lastError": null,
+        "artifacts": {
+          "specPath": "specs/002-click-analytics-ratelimit/spec.md"
+        }
+      },
+      {
+        "nodeId": "design",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:19:03.545560Z",
+        "endedAt": "2026-08-20T04:19:10.143614Z",
+        "lastError": null,
+        "artifacts": {
+          "designPath": "specs/002-click-analytics-ratelimit/plan.md"
+        }
+      },
+      {
+        "nodeId": "implementation",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:19:10.150124Z",
+        "endedAt": "2026-08-20T04:19:10.244177Z",
+        "lastError": null,
+        "artifacts": {
+          "commit": "35942fa"
+        }
+      },
+      {
+        "nodeId": "testing",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:19:10.252199Z",
+        "endedAt": "2026-08-20T04:19:18.294113Z",
+        "lastError": null,
+        "artifacts": {
+          "testReport": "url-shortener-service/target/surefire-reports (32 tests, 0 failures; fixed a rate-limit path-pattern bug found by RateLimitIntegrationTest)"
+        }
+      },
+      {
+        "nodeId": "documentation",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:19:10.256207Z",
+        "endedAt": "2026-08-20T04:19:18.366884Z",
+        "lastError": null,
+        "artifacts": {
+          "docsPath": "url-shortener-service/README.md"
+        }
+      },
+      {
+        "nodeId": "release_readiness",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:19:18.378882Z",
+        "endedAt": "2026-08-20T04:19:24.982419Z",
+        "lastError": null,
+        "artifacts": {}
+      }
+    ]
+  },
+  "auditLog": [
+    {
+      "id": "591d74ea-be61-44f8-a762-49adfe2a4be4",
+      "nodeId": null,
+      "timestamp": "2026-08-20T04:18:56.053738Z",
+      "actor": "SYSTEM",
+      "eventType": "RUN_STARTED",
+      "message": "Run started for workflow 'sdlc-standard'",
+      "rationale": null
+    },
+    {
+      "id": "81825679-4a0a-4698-84e3-f6af069607e9",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T04:18:56.057739Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_AWAITING_APPROVAL",
+      "message": "Node awaiting human approval (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "df344192-76bf-4cbc-ac6b-c6905aaf7866",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T04:19:03.538563Z",
+      "actor": "HUMAN",
+      "eventType": "APPROVAL_GRANTED",
+      "message": "Approved by human-product-owner",
+      "rationale": "Brownfield impact analysis reviewed (impacted modules table in spec.md); ambiguities B1-B4 resolved."
+    },
+    {
+      "id": "0df52e97-724c-47d2-bd98-b5628ece118d",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T04:19:03.539563Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by human-product-owner",
+      "rationale": null
+    },
+    {
+      "id": "a11d7600-4e83-45b5-847b-b5a34427df19",
+      "nodeId": "design",
+      "timestamp": "2026-08-20T04:19:03.545560Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "c50c63c1-6b82-42e0-a52e-3ad7e566af13",
+      "nodeId": "design",
+      "timestamp": "2026-08-20T04:19:10.144614Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "03600346-c1b3-420c-b87d-49b9f16bf358",
+      "nodeId": "implementation",
+      "timestamp": "2026-08-20T04:19:10.150124Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "31279ead-f229-4ce1-a292-6d71c7bb9bf1",
+      "nodeId": "implementation",
+      "timestamp": "2026-08-20T04:19:10.245174Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "eb6b06f0-a39c-4336-8171-4ce2aead82ee",
+      "nodeId": "testing",
+      "timestamp": "2026-08-20T04:19:10.253219Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "4d418e16-ed4d-4371-bfe0-3f7306bf3cd2",
+      "nodeId": "documentation",
+      "timestamp": "2026-08-20T04:19:10.257207Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "a1d27c80-80a3-4a6e-9261-9e78fd8dba84",
+      "nodeId": "testing",
+      "timestamp": "2026-08-20T04:19:18.295113Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "3ceab7fa-5b59-47f5-a3a5-d878ef7deacd",
+      "nodeId": "documentation",
+      "timestamp": "2026-08-20T04:19:18.367890Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "abf68861-4d1d-4099-bf3b-da89f7315cda",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T04:19:18.378882Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_AWAITING_APPROVAL",
+      "message": "Node awaiting human approval (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "9f83e532-2020-44da-9859-530028605194",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T04:19:24.982419Z",
+      "actor": "HUMAN",
+      "eventType": "APPROVAL_GRANTED",
+      "message": "Approved by human-release-manager",
+      "rationale": "32/32 tests green, known limitation (in-memory single-instance rate limiter) documented, brownfield diff reviewed against spec 001 impact table. Approved."
+    },
+    {
+      "id": "edc08da5-d75b-40eb-bc7e-93578cb9b9d8",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T04:19:24.982419Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by human-release-manager",
+      "rationale": null
+    },
+    {
+      "id": "af5947ea-5139-4d0b-9e05-d8daa7d5c20e",
+      "nodeId": null,
+      "timestamp": "2026-08-20T04:19:24.991448Z",
+      "actor": "SYSTEM",
+      "eventType": "RUN_COMPLETED",
+      "message": "All nodes completed successfully",
+      "rationale": null
+    }
+  ],
+  "metrics": {
+    "runId": "bf7f7fed-4757-4698-954b-aff16b345dd5",
+    "status": "COMPLETED",
+    "latencyMillis": 28939,
+    "retryCount": 0,
+    "rollbackCount": 0,
+    "mttrMillis": null
+  }
+}
