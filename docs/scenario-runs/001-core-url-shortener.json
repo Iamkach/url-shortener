@@ -1,0 +1,240 @@
+{
+  "scenario": "001-core-url-shortener",
+  "type": "greenfield",
+  "run": {
+    "id": "a225e9f9-a873-4918-b058-754c05f5328b",
+    "workflowDefinitionId": "sdlc-standard",
+    "status": "COMPLETED",
+    "startedAt": "2026-08-20T04:11:49.616781Z",
+    "completedAt": "2026-08-20T04:13:06.859156Z",
+    "createdBy": "human-product-owner",
+    "context": {
+      "implementation.commit": "04b2f71",
+      "design.designPath": "specs/001-core-url-shortener/plan.md",
+      "requirements.specPath": "specs/001-core-url-shortener/spec.md",
+      "feature": "001-core-url-shortener",
+      "testing.testReport": "url-shortener-service/target/surefire-reports (22 tests, 0 failures)",
+      "documentation.docsPath": "url-shortener-service/README.md"
+    },
+    "nodes": [
+      {
+        "nodeId": "requirements",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:11:49.817571Z",
+        "endedAt": "2026-08-20T04:12:02.152207Z",
+        "lastError": null,
+        "artifacts": {
+          "specPath": "specs/001-core-url-shortener/spec.md"
+        }
+      },
+      {
+        "nodeId": "design",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:12:02.170203Z",
+        "endedAt": "2026-08-20T04:12:09.285691Z",
+        "lastError": null,
+        "artifacts": {
+          "designPath": "specs/001-core-url-shortener/plan.md"
+        }
+      },
+      {
+        "nodeId": "implementation",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:12:09.292690Z",
+        "endedAt": "2026-08-20T04:12:45.178743Z",
+        "lastError": null,
+        "artifacts": {
+          "commit": "04b2f71"
+        }
+      },
+      {
+        "nodeId": "testing",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:12:45.188742Z",
+        "endedAt": "2026-08-20T04:13:00.565495Z",
+        "lastError": null,
+        "artifacts": {
+          "testReport": "url-shortener-service/target/surefire-reports (22 tests, 0 failures)"
+        }
+      },
+      {
+        "nodeId": "documentation",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:12:45.191742Z",
+        "endedAt": "2026-08-20T04:13:00.642387Z",
+        "lastError": null,
+        "artifacts": {
+          "docsPath": "url-shortener-service/README.md"
+        }
+      },
+      {
+        "nodeId": "release_readiness",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T04:13:00.656053Z",
+        "endedAt": "2026-08-20T04:13:06.845126Z",
+        "lastError": null,
+        "artifacts": {}
+      }
+    ]
+  },
+  "auditLog": [
+    {
+      "id": "ff25bb5a-09e7-4a81-8c9a-5f5f1c1c61f2",
+      "nodeId": null,
+      "timestamp": "2026-08-20T04:11:49.648879Z",
+      "actor": "SYSTEM",
+      "eventType": "RUN_STARTED",
+      "message": "Run started for workflow 'sdlc-standard'",
+      "rationale": null
+    },
+    {
+      "id": "c0edfa7e-51f3-4547-a55e-013382a70148",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T04:11:49.818572Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_AWAITING_APPROVAL",
+      "message": "Node awaiting human approval (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "3b301f33-e4f8-4f16-a6ec-d9a63e3983c0",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T04:12:02.151205Z",
+      "actor": "HUMAN",
+      "eventType": "APPROVAL_GRANTED",
+      "message": "Approved by human-product-owner",
+      "rationale": "Requirements reviewed and normalized; ambiguities A1-A5 resolved in spec.md."
+    },
+    {
+      "id": "e56f34b9-300c-496a-a7fb-f93b70875c9f",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T04:12:02.153204Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by human-product-owner",
+      "rationale": null
+    },
+    {
+      "id": "18ded42d-1474-4f23-bfde-f126c17ceac3",
+      "nodeId": "design",
+      "timestamp": "2026-08-20T04:12:02.171203Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "ecf73c78-04ae-4615-90b0-23830ffd8dfc",
+      "nodeId": "design",
+      "timestamp": "2026-08-20T04:12:09.285691Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "407b9c9d-984c-4257-88ed-3ded1e63ceb4",
+      "nodeId": "implementation",
+      "timestamp": "2026-08-20T04:12:09.292690Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "787bbf5e-18e9-461e-9e89-3b56827b0fe4",
+      "nodeId": "implementation",
+      "timestamp": "2026-08-20T04:12:45.179004Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "0021907f-32b4-4348-bdef-436f082e203a",
+      "nodeId": "testing",
+      "timestamp": "2026-08-20T04:12:45.188742Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "83cdf756-44e5-411c-ae7d-2d1156268261",
+      "nodeId": "documentation",
+      "timestamp": "2026-08-20T04:12:45.192741Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "8210b4a8-02a1-4072-be7f-9849695f6da6",
+      "nodeId": "testing",
+      "timestamp": "2026-08-20T04:13:00.565495Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "1c0bb6bb-f474-4311-858a-59ceee84771e",
+      "nodeId": "documentation",
+      "timestamp": "2026-08-20T04:13:00.643052Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "379e4b05-b1c1-40b9-86ad-2aa79fa75fff",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T04:13:00.656053Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_AWAITING_APPROVAL",
+      "message": "Node awaiting human approval (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "17116cdc-e3b0-424d-aa3d-7d8eb6339390",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T04:13:06.844126Z",
+      "actor": "HUMAN",
+      "eventType": "APPROVAL_GRANTED",
+      "message": "Approved by human-release-manager",
+      "rationale": "22/22 tests green, README + OpenAPI present, core path matches spec 001 acceptance criteria. Approved for release."
+    },
+    {
+      "id": "cce84c31-0aff-4f44-aa93-fcb571f8c830",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T04:13:06.845126Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by human-release-manager",
+      "rationale": null
+    },
+    {
+      "id": "0418d627-c969-4641-954b-3262a90c1e0a",
+      "nodeId": null,
+      "timestamp": "2026-08-20T04:13:06.859156Z",
+      "actor": "SYSTEM",
+      "eventType": "RUN_COMPLETED",
+      "message": "All nodes completed successfully",
+      "rationale": null
+    }
+  ],
+  "metrics": {
+    "runId": "a225e9f9-a873-4918-b058-754c05f5328b",
+    "status": "COMPLETED",
+    "latencyMillis": 77243,
+    "retryCount": 0,
+    "rollbackCount": 0,
+    "mttrMillis": null
+  }
+}
