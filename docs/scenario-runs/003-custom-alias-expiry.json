@@ -1,0 +1,240 @@
+{
+  "scenario": "003-custom-alias-expiry",
+  "type": "ambiguous",
+  "run": {
+    "id": "825dfedd-588d-4604-b3fb-7f7e225eb32d",
+    "workflowDefinitionId": "sdlc-standard",
+    "status": "COMPLETED",
+    "startedAt": "2026-08-20T05:59:52.660902Z",
+    "completedAt": "2026-08-20T06:00:21.003571Z",
+    "createdBy": "human-product-owner",
+    "context": {
+      "implementation.commit": "008ffcb",
+      "design.designPath": "specs/003-custom-alias-expiry/plan.md",
+      "requirements.specPath": "specs/003-custom-alias-expiry/spec.md",
+      "feature": "003-custom-alias-expiry",
+      "testing.testReport": "url-shortener-service/target/surefire-reports (56 tests, 0 failures)",
+      "documentation.docsPath": "url-shortener-service/README.md"
+    },
+    "nodes": [
+      {
+        "nodeId": "requirements",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T05:59:52.664901Z",
+        "endedAt": "2026-08-20T05:59:59.637203Z",
+        "lastError": null,
+        "artifacts": {
+          "specPath": "specs/003-custom-alias-expiry/spec.md"
+        }
+      },
+      {
+        "nodeId": "design",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T05:59:59.641221Z",
+        "endedAt": "2026-08-20T06:00:07.351435Z",
+        "lastError": null,
+        "artifacts": {
+          "designPath": "specs/003-custom-alias-expiry/plan.md"
+        }
+      },
+      {
+        "nodeId": "implementation",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T06:00:07.355465Z",
+        "endedAt": "2026-08-20T06:00:07.419435Z",
+        "lastError": null,
+        "artifacts": {
+          "commit": "008ffcb"
+        }
+      },
+      {
+        "nodeId": "testing",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T06:00:07.426470Z",
+        "endedAt": "2026-08-20T06:00:14.734606Z",
+        "lastError": null,
+        "artifacts": {
+          "testReport": "url-shortener-service/target/surefire-reports (56 tests, 0 failures)"
+        }
+      },
+      {
+        "nodeId": "documentation",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T06:00:07.429469Z",
+        "endedAt": "2026-08-20T06:00:14.796131Z",
+        "lastError": null,
+        "artifacts": {
+          "docsPath": "url-shortener-service/README.md"
+        }
+      },
+      {
+        "nodeId": "release_readiness",
+        "status": "COMPLETED",
+        "attempt": 1,
+        "startedAt": "2026-08-20T06:00:14.804131Z",
+        "endedAt": "2026-08-20T06:00:20.995545Z",
+        "lastError": null,
+        "artifacts": {}
+      }
+    ]
+  },
+  "auditLog": [
+    {
+      "id": "7f48ac64-0d1a-464a-9c0d-7c2343e7a689",
+      "nodeId": null,
+      "timestamp": "2026-08-20T05:59:52.661900Z",
+      "actor": "SYSTEM",
+      "eventType": "RUN_STARTED",
+      "message": "Run started for workflow 'sdlc-standard'",
+      "rationale": null
+    },
+    {
+      "id": "da6c8062-b2bf-466c-a7ab-3b53bdb89e8b",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T05:59:52.664901Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_AWAITING_APPROVAL",
+      "message": "Node awaiting human approval (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "74a5236c-52a9-4882-8181-f2ae0a536b07",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T05:59:59.637203Z",
+      "actor": "HUMAN",
+      "eventType": "APPROVAL_GRANTED",
+      "message": "Approved by human-product-owner",
+      "rationale": "Ambiguous raw ask normalized via 3 clarifying questions put to the human reviewer (AskUserQuestion): C1 alias-collision=409 Conflict, C2 reserved-word blocklist=yes, C3 expiry semantics=soft-expire/410. All three answered and recorded in spec.md before any design work started."
+    },
+    {
+      "id": "e9112310-07a7-47c4-ac6c-d9f360e9dc7f",
+      "nodeId": "requirements",
+      "timestamp": "2026-08-20T05:59:59.637203Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by human-product-owner",
+      "rationale": null
+    },
+    {
+      "id": "f569f1c8-206d-4880-8c26-322dbe4b3219",
+      "nodeId": "design",
+      "timestamp": "2026-08-20T05:59:59.642172Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "0f4c7339-025f-43ef-9a11-824e66dd1438",
+      "nodeId": "design",
+      "timestamp": "2026-08-20T06:00:07.352436Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "10648888-3ff9-435d-9cff-d91c0e4185fd",
+      "nodeId": "implementation",
+      "timestamp": "2026-08-20T06:00:07.355465Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "833862d1-4887-48d4-94b6-fc44772c1bce",
+      "nodeId": "implementation",
+      "timestamp": "2026-08-20T06:00:07.420434Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "04b643a9-0c91-4002-94e7-f3aff8ef08fb",
+      "nodeId": "testing",
+      "timestamp": "2026-08-20T06:00:07.426470Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "950704a8-6be5-4527-9eea-79fa35190610",
+      "nodeId": "documentation",
+      "timestamp": "2026-08-20T06:00:07.429469Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_DISPATCHED",
+      "message": "Node dispatched to agent (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "ada05517-07cc-416d-9a1c-01a298bb2df6",
+      "nodeId": "testing",
+      "timestamp": "2026-08-20T06:00:14.734606Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "611fcce7-bea1-4b01-85df-00a7804f8c11",
+      "nodeId": "documentation",
+      "timestamp": "2026-08-20T06:00:14.796131Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by agent",
+      "rationale": null
+    },
+    {
+      "id": "84b5a2d6-a1b9-44cc-a528-ab00a762213e",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T06:00:14.805131Z",
+      "actor": "SYSTEM",
+      "eventType": "NODE_AWAITING_APPROVAL",
+      "message": "Node awaiting human approval (attempt 1)",
+      "rationale": null
+    },
+    {
+      "id": "cc8285c8-3b52-431d-8e4f-c202a6b74587",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T06:00:20.995545Z",
+      "actor": "HUMAN",
+      "eventType": "APPROVAL_GRANTED",
+      "message": "Approved by human-release-manager",
+      "rationale": "56/56 tests green, ambiguity resolutions C1-C3 traceable end to end from requirements through implementation. Approved."
+    },
+    {
+      "id": "ccbfd073-f4d9-4bc2-a998-ca970eae3e66",
+      "nodeId": "release_readiness",
+      "timestamp": "2026-08-20T06:00:20.995545Z",
+      "actor": "AGENT",
+      "eventType": "NODE_COMPLETED",
+      "message": "Node completed by human-release-manager",
+      "rationale": null
+    },
+    {
+      "id": "42d374ab-6f76-4831-a4ea-910f27dd66f6",
+      "nodeId": null,
+      "timestamp": "2026-08-20T06:00:21.003571Z",
+      "actor": "SYSTEM",
+      "eventType": "RUN_COMPLETED",
+      "message": "All nodes completed successfully",
+      "rationale": null
+    }
+  ],
+  "metrics": {
+    "runId": "825dfedd-588d-4604-b3fb-7f7e225eb32d",
+    "status": "COMPLETED",
+    "latencyMillis": 28343,
+    "retryCount": 0,
+    "rollbackCount": 0,
+    "mttrMillis": null
+  }
+}
