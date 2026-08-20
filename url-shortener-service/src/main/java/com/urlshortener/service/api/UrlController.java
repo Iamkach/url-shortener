@@ -30,7 +30,7 @@ public class UrlController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UrlResponse create(@RequestBody CreateUrlRequest request) {
-        ShortUrl entity = service.create(request.longUrl(), request.expiresAt());
+        ShortUrl entity = service.create(request.longUrl(), request.expiresAt(), request.customAlias());
         return UrlResponse.from(entity, baseUrl);
     }
 

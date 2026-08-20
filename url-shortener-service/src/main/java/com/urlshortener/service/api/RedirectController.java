@@ -2,6 +2,7 @@ package com.urlshortener.service.api;
 
 import com.urlshortener.service.domain.ShortUrl;
 import com.urlshortener.service.service.ClickRecordingService;
+import com.urlshortener.service.service.LinkExpiredException;
 import com.urlshortener.service.service.UrlShortenerService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.time.Instant;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,6 +26,11 @@ public class RedirectController {
     @GetMapping("/{code}")
     public ResponseEntity<Void> redirect(@PathVariable String code) {
         ShortUrl entity = service.resolve(code);
+        // Soft-expire (spec 003, C3): the row is kept and metadata stays readable via
+        // UrlController -- only the redirect itself is blocked once expiresAt has passed.
+        if (entity.getExpiresAt() != null && entity.getExpiresAt().isBefore(Instant.now())) {
+            throw new LinkExpiredException("Short link '" + code + "' expired at " + entity.getExpiresAt());
+        }
         ResponseEntity<Void> response = ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(entity.getLongUrl()))
                 .build();

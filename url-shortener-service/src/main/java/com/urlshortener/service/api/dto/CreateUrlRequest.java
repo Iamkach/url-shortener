@@ -4,6 +4,7 @@ import java.time.Instant;
 
 public record CreateUrlRequest(
         String longUrl,
-        Instant expiresAt
+        Instant expiresAt,
+        String customAlias
 ) {
 }

@@ -19,13 +19,33 @@ public class UrlShortenerService {
 
     @Transactional
     public ShortUrl create(String longUrl, Instant expiresAt) {
+        return create(longUrl, expiresAt, null);
+    }
+
+    /**
+     * @param customAlias optional (spec 003); when present it's used verbatim as the
+     *                     shortCode instead of the Base62-derived one, after validation
+     *                     and a uniqueness check.
+     */
+    @Transactional
+    public ShortUrl create(String longUrl, Instant expiresAt, String customAlias) {
         validator.validate(longUrl);
 
         ShortUrl entity = new ShortUrl();
         entity.setLongUrl(longUrl);
         entity.setCreatedAt(Instant.now());
         entity.setExpiresAt(expiresAt);
-        // Save first so the DB assigns the id that seeds the short code (see plan.md §3).
+
+        if (customAlias != null) {
+            validator.validateAlias(customAlias);
+            if (repository.findByShortCode(customAlias).isPresent()) {
+                throw new AliasAlreadyExistsException("customAlias '" + customAlias + "' is already in use");
+            }
+            entity.setShortCode(customAlias);
+            return repository.save(entity);
+        }
+
+        // Save first so the DB assigns the id that seeds the short code (see plan.md §3, spec 001).
         entity = repository.save(entity);
         entity.setShortCode(codec.encode(entity.getId()));
         return repository.save(entity);
