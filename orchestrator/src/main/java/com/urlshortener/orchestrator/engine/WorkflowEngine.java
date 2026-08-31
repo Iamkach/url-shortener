@@ -95,6 +95,7 @@ public class WorkflowEngine {
     // Commands
     // ------------------------------------------------------------------
 
+    @Transactional
     public WorkflowRunEntity startRun(String workflowDefinitionId, Map<String, String> initialContext, String createdBy) {
         return startRun(workflowDefinitionId, initialContext, createdBy, false);
     }
