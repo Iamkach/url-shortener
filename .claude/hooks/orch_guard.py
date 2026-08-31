@@ -20,6 +20,11 @@ GOVERNED = ["url-shortener-service/src/**", "orchestrator/src/**", "specs/**"]
 ALWAYS_EXEMPT = ["CLAUDE.md", "README.md", ".gitignore", "docs/**/*.md", "*.md"]
 WALKTHROUGH = "docs/executor-seam-walkthrough.md"
 
+# This script lives at <repo-root>/.claude/hooks/orch_guard.py — anchor on the repo
+# root derived from its own location, never on os.getcwd() (a session started in a
+# subdirectory would otherwise compute paths that match no glob and fail open).
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def glob_to_regex(glob):
     i, n, out = 0, len(glob), ["^"]
@@ -49,12 +54,16 @@ def matches(path, glob):
 
 
 def repo_relative(file_path):
-    root = os.path.abspath(os.getcwd())
     try:
-        rel = os.path.relpath(os.path.abspath(file_path), root)
+        rel = os.path.relpath(os.path.abspath(file_path), REPO_ROOT)
     except ValueError:
-        rel = file_path
-    return rel.replace(os.sep, "/")
+        # Different Windows drive — cannot be inside the repo root.
+        return None
+    rel = rel.replace(os.sep, "/")
+    if rel == ".." or rel.startswith("../"):
+        # Path escapes the repo root.
+        return None
+    return rel
 
 
 def emit(decision, reason):
@@ -77,6 +86,9 @@ def main():
         emit("allow", "orch_guard: tool call has no file_path")
 
     rel = repo_relative(file_path)
+
+    if rel is None:
+        emit("deny", "orch_guard: cannot resolve %s against the repo root — refusing edit" % file_path)
 
     if any(matches(rel, g) for g in ALWAYS_EXEMPT):
         emit("allow", "orch_guard: %s is docs/meta — always editable" % rel)
