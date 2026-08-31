@@ -310,9 +310,11 @@ curl http://localhost:8081/metrics                # aggregate across all runs
 | `POST` | `/api/urls` | Shorten a URL. Body: `{"longUrl", "expiresAt"?, "customAlias"?}`. Rate-limited |
 | `GET` | `/api/urls/{code}` | Metadata for a short code (no redirect); `200` even if expired (soft-expire) |
 | `GET` | `/api/urls/{code}/analytics` | `{"shortCode", "totalClicks", "lastAccessedAt"}` |
+| `GET` | `/api/urls/{code}/qr` | `200` `image/png` — 256×256 QR code encoding the short URL; `404` unknown code, `410 Gone` if expired |
 | `GET` | `/{code}` | `302` redirect; `410 Gone` if expired; records a click async, off the response path |
 
-Full request/response examples in [`url-shortener-service/README.md`](url-shortener-service/README.md).
+Full request/response examples in [`url-shortener-service/README.md`](url-shortener-service/README.md);
+the QR endpoint is documented in [`docs/qr-code-endpoint.md`](docs/qr-code-endpoint.md).
 
 ## Testing
 

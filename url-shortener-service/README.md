@@ -1,9 +1,10 @@
 # url-shortener-service
 
 Core URL shortener product. See `specs/001-core-url-shortener/` (core shorten/redirect),
-`specs/002-click-analytics-ratelimit/` (analytics + rate limiting), and
-`specs/003-custom-alias-expiry/` (custom aliases + expiry enforcement) for the
-requirements and design this module implements.
+`specs/002-click-analytics-ratelimit/` (analytics + rate limiting),
+`specs/003-custom-alias-expiry/` (custom aliases + expiry enforcement), and
+`specs/004-autonomous-agent/` (QR-code endpoint) for the requirements and design this
+module implements.
 
 ## Run
 
@@ -24,6 +25,7 @@ OpenAPI/Swagger UI: `http://localhost:8080/swagger-ui.html`.
 | `POST` | `/api/urls` | Shorten a URL. Body: `{"longUrl": "...", "expiresAt"?: "ISO-8601", "customAlias"?: "my-brand"}`. Rate-limited (see below) |
 | `GET` | `/api/urls/{code}` | Fetch metadata for a short code (no redirect). Still returns `200` even if the link has expired (soft-expire) |
 | `GET` | `/api/urls/{code}/analytics` | `{"shortCode", "totalClicks", "lastAccessedAt"}` |
+| `GET` | `/api/urls/{code}/qr` | 256×256 PNG (`image/png`) QR code encoding the short URL; `404` if the code is unknown, `410 Gone` if expired. Read path — not rate-limited, no analytics side effect. See [`docs/qr-code-endpoint.md`](../docs/qr-code-endpoint.md) |
 | `GET` | `/{code}` | Resolve and `302` redirect to the original URL; `410 Gone` if expired; records a click (async, off the response path) |
 
 ## Custom Aliases & Expiry
@@ -61,6 +63,8 @@ curl -s -X POST http://localhost:8080/api/urls \
 # => {"shortCode":"0004","shortUrl":"http://localhost:8080/0004", ...}
 
 curl -i http://localhost:8080/0004   # 302 redirect
+
+curl -s http://localhost:8080/api/urls/0004/qr -o qr.png   # 256x256 PNG QR code
 ```
 
 ## Test
