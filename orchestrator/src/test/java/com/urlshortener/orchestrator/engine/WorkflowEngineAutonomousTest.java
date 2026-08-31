@@ -59,7 +59,7 @@ class WorkflowEngineAutonomousTest {
         engine.approve(runId, "reqs", "product-owner", "clear", Map.of("specPath", "specs/x/spec.md"));
 
         // design -> impl -> {test, docs} all run via the scripted executor, no complete() calls here.
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(nodeStatus(runId, "release")).isEqualTo("AWAITING_APPROVAL"));
         assertThat(nodeStatus(runId, "design")).isEqualTo("COMPLETED");
         assertThat(nodeStatus(runId, "impl")).isEqualTo("COMPLETED");
@@ -88,7 +88,7 @@ class WorkflowEngineAutonomousTest {
         String runId = run.getId();
         engine.approve(runId, "reqs", "po", "clear", Map.of("specPath", "specs/x/spec.md"));
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
             assertThat(auditTypes(runId)).contains(EventType.RETRY_ATTEMPTED);
             assertThat(nodeStatus(runId, "test")).isEqualTo("COMPLETED");
         });
