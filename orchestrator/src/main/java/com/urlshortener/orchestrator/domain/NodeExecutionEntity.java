@@ -38,6 +38,8 @@ public class NodeExecutionEntity {
     private int attempt;
     private Instant startedAt;
     private Instant endedAt;
+
+    @Column(length = 2000)
     private String lastError;
 
     /** Output artifacts produced by this node (e.g. specPath, testReport, commit). */

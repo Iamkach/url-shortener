@@ -83,17 +83,15 @@ public class NodeDispatchListener {
     private void feedBack(NodeDispatchedEvent event, String executorId, NodeExecutionResult result) {
         try {
             if (result.outcome() == NodeExecutionResult.Outcome.COMPLETE) {
-                engine.complete(event.runId(), event.nodeId(), result.artifacts(), actor(executorId, result.notes()));
+                // executorId is the short actor label ("agent"); the free-text notes go to the
+                // wide `rationale` column, not the 255-char audit `message`.
+                engine.complete(event.runId(), event.nodeId(), result.artifacts(), executorId, result.notes());
             } else {
-                engine.fail(event.runId(), event.nodeId(), result.notes(), actor(executorId, null));
+                engine.fail(event.runId(), event.nodeId(), result.notes(), executorId);
             }
         } catch (RuntimeException e) {
             // The node may have been completed/failed/re-planned by another path in the meantime.
             log.debug("Feed-back for node '{}' in run {} rejected by engine: {}", event.nodeId(), event.runId(), e.getMessage());
         }
-    }
-
-    private static String actor(String executorId, String notes) {
-        return notes == null || notes.isBlank() ? executorId : executorId + ": " + notes;
     }
 }
