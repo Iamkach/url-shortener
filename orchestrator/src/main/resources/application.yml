@@ -22,9 +22,27 @@ orchestrator:
   workflow-definitions-path: classpath:workflows
   executor:
     # Global default executor for nodes that don't set their own `executor:`.
-    # manual (default) = engine waits for a REST callback; scripted = canned (tests); llm = real model call.
-    mode: ${ORCHESTRATOR_EXECUTOR_MODE:manual}
+    # manual (default) = engine waits for a REST callback; scripted = canned (tests);
+    # llm = real model call; agent = spawn an agent CLI (Claude Code by default) as the node worker.
+    mode: ${ORCHESTRATOR_EXECUTOR_MODE:manual}   # manual | scripted | llm | agent
+    agent:
+      command: ${ORCH_AGENT_CMD:claude}
+      args-template: >-
+        ${ORCH_AGENT_ARGS:-p --output-format json --permission-mode acceptEdits
+        --add-dir {repoDir} --allowedTools {allowedTools}}
+      prompt-via: ${ORCH_AGENT_PROMPT_VIA:stdin}   # stdin | arg
+      working-dir: ${ORCH_AGENT_WORKDIR:..}
+      timeout-seconds: ${ORCH_AGENT_TIMEOUT:900}
+      max-agent-calls-per-run: 12
+      stage-paths:
+        DESIGN: "specs/**/plan.md,specs/**/tasks.md,docs/**"
+        IMPLEMENTATION: "url-shortener-service/src/**,specs/**/tasks.md"
+        TESTING: "url-shortener-service/src/test/**,docs/scenario-runs/**"
+        DOCUMENTATION: "docs/**,README.md,url-shortener-service/**/*.md"
     llm:
+      provider: ${ORCH_LLM_PROVIDER:anthropic}     # anthropic | openai-compatible
+      base-url: ${ORCH_LLM_BASE_URL:}
+      api-key-env: ${ORCH_LLM_KEY_ENV:ANTHROPIC_API_KEY}
       model: ${ORCHESTRATOR_LLM_MODEL:claude-opus-5}  # set to claude-sonnet-5 for a cheaper demo run
       max-model-calls-per-run: 12
       max-output-tokens: 4096

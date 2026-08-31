@@ -1,13 +1,11 @@
 package com.urlshortener.orchestrator.engine.executor;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.urlshortener.orchestrator.domain.StageType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,46 +55,7 @@ public class LlmNodeExecutor implements NodeExecutor {
         } catch (RuntimeException e) {
             return NodeExecutionResult.fail("model call failed: " + e.getMessage());
         }
-        return parse(raw);
-    }
-
-    private NodeExecutionResult parse(String raw) {
-        String body = extractJsonObject(raw);
-        if (body == null) {
-            return NodeExecutionResult.fail("unparseable model response (no JSON object): " + truncate(raw));
-        }
-        try {
-            JsonNode root = json.readTree(body);
-            String status = root.path("status").asText("");
-            String notes = root.path("notes").asText("");
-            if ("fail".equalsIgnoreCase(status)) {
-                return NodeExecutionResult.fail(notes.isBlank() ? "model reported failure" : notes);
-            }
-            if (!"complete".equalsIgnoreCase(status)) {
-                return NodeExecutionResult.fail("model response has unknown status '" + status + "'");
-            }
-            Map<String, String> artifacts = new LinkedHashMap<>();
-            JsonNode artifactsNode = root.path("artifacts");
-            artifactsNode.fields().forEachRemaining(e -> artifacts.put(e.getKey(), e.getValue().asText()));
-            return NodeExecutionResult.complete(artifacts, notes);
-        } catch (Exception e) {
-            return NodeExecutionResult.fail("unparseable model response: " + e.getMessage());
-        }
-    }
-
-    /** Tolerates prose or ```json fences around the object. */
-    static String extractJsonObject(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        int start = raw.indexOf('{');
-        int end = raw.lastIndexOf('}');
-        return start >= 0 && end > start ? raw.substring(start, end + 1) : null;
-    }
-
-    private static String truncate(String s) {
-        s = s == null ? "" : s.strip();
-        return s.length() > 200 ? s.substring(0, 200) + "…" : s;
+        return NodeResultParser.parse(raw);
     }
 
     private static String systemPrompt(StageType stage) {

@@ -74,9 +74,6 @@ class LlmNodeExecutorTest {
         assertThat(third.notes()).contains("budget exhausted");
     }
 
-    @Test
-    void fencedJsonIsTolerated() {
-        assertThat(LlmNodeExecutor.extractJsonObject("```json\n{\"a\":1}\n```")).isEqualTo("{\"a\":1}");
-        assertThat(LlmNodeExecutor.extractJsonObject("no json here")).isNull();
-    }
+    // Reply-parsing specifics (fences, malformed, status/artifact extraction) now live in
+    // NodeResultParserTest — shared by the llm and agent executors.
 }

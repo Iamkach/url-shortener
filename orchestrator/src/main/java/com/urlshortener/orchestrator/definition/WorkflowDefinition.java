@@ -24,7 +24,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class WorkflowDefinition {
 
-    private static final Set<String> KNOWN_EXECUTORS = Set.of("manual", "scripted", "llm");
+    private static final Set<String> KNOWN_EXECUTORS = Set.of("manual", "scripted", "llm", "agent");
 
     private String id;
     private String name;
