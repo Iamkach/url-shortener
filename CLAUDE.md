@@ -21,7 +21,8 @@ Build/test everything from the repo root:
 ```bash
 mvn test
 ```
-Runs both modules: 15 tests in `orchestrator`, 56 in `url-shortener-service` (71 total).
+Runs both modules: 27 tests in `orchestrator` (15 core governance + 12 executor/autonomous),
+56 in `url-shortener-service` (83 total).
 
 Run a single module's tests:
 ```bash
@@ -80,11 +81,20 @@ Workflow definitions live in `orchestrator/src/main/resources/workflows/*.yaml`
 `design` → `implementation` → {`testing`, `documentation`} in parallel → `release_readiness`
 (human gate)).
 
-**Core principle — controlled autonomy:** the engine coordinates, it never executes. A node's
-actual work (writing a spec, code, tests, docs) happens outside the JVM, by a human or an agent;
-`WorkflowEngine` only decides *when* a node may run, tracks its state, and enforces governance via
-`complete`/`fail`/`approve`/`reject` calls on its REST API. Never wire the engine up to call out to
-do work directly — that inverts the design the whole test suite is built around.
+**Core principle — controlled autonomy:** the engine's *core* coordinates, it never does a node's
+SDLC work itself. `WorkflowEngine` only decides *when* a node may run, tracks its state, and
+enforces governance via `complete`/`fail`/`approve`/`reject`. The work reaches a node through a
+pluggable `NodeExecutor` (`engine/executor/`), selected per node (`executor:` in the workflow YAML)
+or globally (`orchestrator.executor.mode`):
+- **`manual`** (default) — engine waits for an external REST callback. **All 15 core engine tests
+  run in this mode: zero network, deterministic. Keep it the default; never make `llm` the default
+  or route the engine's own logic through a model.**
+- **`llm`** — `LlmNodeExecutor` + `AnthropicChatPort` make a real Messages API call, opt-in, only
+  when `orchestrator.executor.mode=llm` (needs `ANTHROPIC_API_KEY`).
+- On an `autonomous: true` run, `NodeDispatchListener` picks up a dispatched non-`manual` node
+  after commit, runs its executor on a bounded pool, and feeds the result back through
+  `complete`/`fail`. Human approval gates still block. Governance is identical in every mode —
+  don't add a code path that lets an executor bypass `PolicyEngine`, retry, fallback, or rollback.
 
 **State machine behaviors to know before touching `WorkflowEngine`:**
 - **Retry**: bounded by `maxRetries`; `fail()` moves the node to `RETRYING` and immediately

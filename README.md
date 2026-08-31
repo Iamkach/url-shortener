@@ -172,11 +172,11 @@ design work began:
 All figures below are pulled directly from `mvn test` output and the committed
 `docs/scenario-runs/*.json` exports — reproducible, not asserted.
 
-**Test suite** (`mvn test`, 71/71 passing):
+**Test suite** (`mvn test`, 83/83 passing):
 
 | Module | Tests | Focus |
 |---|---|---|
-| `orchestrator` | 15 | DAG validation (cycle/dangling-dep detection), parallel dispatch + join sync, retry exhaustion → rollback, approval rejection → rollback, fallback triggering, dynamic re-plan, pause/resume, policy-gate denial, metrics computation |
+| `orchestrator` | 27 | 15 core governance tests (DAG validation, parallel dispatch + join sync, retry exhaustion → rollback, approval rejection → rollback, fallback triggering, dynamic re-plan, pause/resume, policy-gate denial, metrics) + 12 executor-seam tests (`NodeExecutorRegistry` selection, `LlmNodeExecutor` prompt/parse/budget with a mocked `ChatPort`, autonomous end-to-end run + retry ladder via a scripted executor) |
 | `url-shortener-service` | 56 | Base62 codec, URL/alias validation, token-bucket rate limiter, service-layer logic against mocked repos, full `@SpringBootTest`/MockMvc integration across shorten/redirect/analytics/rate-limit/custom-alias/expiry against a real in-memory H2 instance |
 
 **Live orchestrator runs** (one per scenario, `sdlc-standard` workflow, all 6 nodes each):
@@ -212,7 +212,7 @@ documented "what would change it" (full table in
 
 | Decision | Alternative considered | Why this way |
 |---|---|---|
-| Engine coordinates, never executes | Engine calls out to an LLM/tool per node | Keeps the engine deterministic and independently testable (15 tests, zero external dependencies); matches "controlled autonomy" — humans/agents own the work, the engine owns governance |
+| Work reaches nodes through a pluggable `NodeExecutor` seam; `manual` is the default, `llm` is opt-in | Engine hard-wired to call an LLM per node | Default `manual` keeps the core engine tests deterministic and network-free; the opt-in `llm` executor plugs a real Anthropic call into the same `dispatchNode` seam with governance (gates, approvals, retry/fallback/rollback, audit, metrics) unchanged — see `docs/architecture.md` §3.1 and `docs/scenario-runs/004-autonomous-llm.json` |
 | Definitions in YAML, runs in JPA | Both in JPA, or both as code | Templates are reusable/reviewable as plain config; runs need audit-grade persistence and query support |
 | Parallel dispatch via shared-dependency readiness | A dedicated `ParallelGroup` construct | The DAG already expresses it — adding a separate primitive would be redundant machinery |
 | Fallback nodes gated on primary failure | Let fallback nodes dispatch whenever their own deps are satisfied | The naive version was implemented first and caught by the engine's own test suite (see Results above) |
@@ -247,7 +247,7 @@ Full detail, plus the testing approach behind these figures, in
 ```bash
 # Build & run the full test suite (both modules)
 mvn test
-# -> 71 tests: 15 orchestrator, 56 url-shortener-service
+# -> 83 tests: 27 orchestrator, 56 url-shortener-service
 ```
 
 Each module is an independent Spring Boot app — run each from *inside* its own directory
@@ -315,8 +315,8 @@ Full request/response examples in [`url-shortener-service/README.md`](url-shorte
 ## Testing
 
 ```bash
-mvn test                              # everything (71 tests)
-mvn -pl orchestrator test             # orchestrator only (15 tests)
+mvn test                              # everything (83 tests)
+mvn -pl orchestrator test             # orchestrator only (27 tests)
 mvn -pl url-shortener-service test    # product only (56 tests)
 mvn test -Dtest=UrlShortenerServiceTest#someMethod   # a single test
 ```

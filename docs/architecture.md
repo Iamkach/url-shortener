@@ -40,11 +40,56 @@ checks) and every run just walks the same trusted graph.
 ### 3.1 Controlled autonomy: the engine coordinates, it doesn't execute
 
 A node's SDLC work (write a spec, write code, run tests, write docs) happens *outside*
-the JVM — by me (acting as the agent) or by a human reviewer. The engine's job is purely
-to decide *when* a node is allowed to run, track its state, and enforce governance. This
-is the "controlled autonomy" principle from the assignment made concrete: `WorkflowEngine`
-never calls out to do work; it dispatches a node to `RUNNING` (or `AWAITING_APPROVAL`)
-and waits for an external `complete`/`fail`/`approve`/`reject` call.
+the engine's core. The engine's job is purely to decide *when* a node is allowed to run,
+track its state, and enforce governance. This is the "controlled autonomy" principle from
+the assignment made concrete: `WorkflowEngine` itself never does the work — it dispatches a
+node to `RUNNING` (or `AWAITING_APPROVAL`) and something reports back via
+`complete`/`fail`/`approve`/`reject`.
+
+**What reports back** is a pluggable `NodeExecutor` behind the `dispatchNode` seam
+(`engine/executor/`), chosen per node (`executor:` in the workflow YAML) or globally
+(`orchestrator.executor.mode`):
+
+- **`manual`** (default) — nothing runs automatically; the engine waits for an external REST
+  callback (a human, or an agent driving the API by hand). This is the mode all 15 core
+  engine tests are built around: zero network, fully deterministic.
+- **`scripted`** — canned results, for tests and offline demos.
+- **`llm`** — a real Anthropic Messages API call (`AnthropicChatPort`). Input: the node
+  definition (stage, gates) plus the accumulated namespaced context. Output: an artifact map
+  and a pass/fail, fed straight back through `complete`/`fail`.
+
+The executor is just an automated stand-in for the human/agent that used to POST back —
+**governance is byte-for-byte identical in every mode**: entry/exit policy gates, human
+approval gates, bounded retry, fallback, rollback, the audit trail and the derived metrics
+all run exactly the same whether a result came from `curl` or from a model. See §3.6.
+
+### 3.1a Execution modes and the autonomous runner
+
+An `autonomous: true` run (flag on `POST /runs`) lets a dispatched non-`manual` node be
+picked up automatically: `dispatchNode` publishes a `NodeDispatchedEvent`, and after the
+transaction commits `NodeDispatchListener` hands the node to its `NodeExecutor` on a bounded
+pool, then feeds the result back through the engine's normal entry points. The "loop" is
+emergent — each callback runs `dispatchReady`, which dispatches the next node, which fires
+the next event — the same fix-point pattern the engine already uses, now closed over the
+executor. **Human approval gates still block**: an autonomous run stops dead at
+`AWAITING_APPROVAL` until a real `approve`/`reject` arrives. Autonomy stops at governance.
+
+```mermaid
+sequenceDiagram
+    participant Eng as WorkflowEngine
+    participant Evt as NodeDispatchListener
+    participant Ex as LlmNodeExecutor
+    participant API as Anthropic API
+    Eng->>Eng: dispatchNode(impl) → RUNNING, audit NODE_DISPATCHED
+    Eng-->>Evt: NodeDispatchedEvent (after commit)
+    Evt->>Ex: execute(node + namespaced context)
+    Ex->>API: messages.create(stage prompt + context)
+    API-->>Ex: {status, artifacts, notes}
+    Ex-->>Eng: complete(impl, artifacts) / fail(impl, reason)
+    Eng->>Eng: exit gate → finishNodeSuccessfully → dispatchReady → next node
+```
+
+`docs/scenario-runs/004-autonomous-llm.json` is one such run exported end to end.
 
 ### 3.2 The DAG
 
@@ -198,7 +243,7 @@ sequenceDiagram
 
 | Decision | Alternative considered | Why this way |
 |---|---|---|
-| Engine coordinates, never executes | Engine calls out to an LLM/tool per node | Keeps the engine deterministic and independently testable (15 engine tests run with zero external dependencies); matches "controlled autonomy" — humans/agents own the work, the engine owns governance |
+| Work reaches nodes through a pluggable `NodeExecutor` seam; `manual` is the default | Engine hard-wired to call an LLM per node | Default `manual` keeps the 15 core engine tests deterministic and network-free. An opt-in `llm` executor (`executor: llm`, or `orchestrator.executor.mode=llm`) plugs a real model into the same `dispatchNode` seam — gates, approvals, retry/fallback/rollback, audit and metrics are identical in both modes (§3.1, §3.1a). Proven end to end in `docs/scenario-runs/004-autonomous-llm.json` |
 | Definitions in YAML, runs in JPA | Both in JPA, or both as code | Templates are reusable and reviewable as plain config; runs need audit-grade persistence and query support JPA gives for free |
 | Parallel dispatch via shared-dependency readiness, not an explicit fork/join primitive | A dedicated `ParallelGroup` construct | The DAG already expresses it — two nodes with the same completed dependency naturally both become ready in the same pass; adding a separate primitive would be redundant machinery |
 | Fallback nodes gated on primary failure | Let fallback nodes dispatch whenever their own deps are satisfied | The naive version was actually implemented first and caught by `WorkflowEngineDiamondTest` — see the bug note below |

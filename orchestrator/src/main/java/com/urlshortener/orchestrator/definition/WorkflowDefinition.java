@@ -24,6 +24,8 @@ import java.util.Set;
 @AllArgsConstructor
 public class WorkflowDefinition {
 
+    private static final Set<String> KNOWN_EXECUTORS = Set.of("manual", "scripted", "llm");
+
     private String id;
     private String name;
     private List<NodeDefinition> nodes = new ArrayList<>();
@@ -78,6 +80,10 @@ public class WorkflowDefinition {
             if (n.getFallbackNodeId() != null && !byId.containsKey(n.getFallbackNodeId())) {
                 throw new IllegalStateException("Workflow '" + id + "' node '" + n.getId()
                         + "' has unknown fallbackNodeId '" + n.getFallbackNodeId() + "'");
+            }
+            if (n.getExecutor() != null && !n.getExecutor().isBlank() && !KNOWN_EXECUTORS.contains(n.getExecutor().trim())) {
+                throw new IllegalStateException("Workflow '" + id + "' node '" + n.getId()
+                        + "' has unknown executor '" + n.getExecutor() + "' (expected one of " + KNOWN_EXECUTORS + ")");
             }
         }
 

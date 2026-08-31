@@ -1,0 +1,62 @@
+id: sdlc-autonomous
+name: Autonomous SDLC Workflow (same DAG as sdlc-standard; non-gate stages run via the llm NodeExecutor)
+# Identical shape and governance to sdlc-standard. The only difference: the four non-approval
+# stages name `executor: llm`, so on an autonomous run (`autonomous: true`) they are executed by a
+# real model call instead of waiting for a REST callback. `requirements` and `release_readiness`
+# stay human approval gates — autonomy stops at governance.
+nodes:
+  - id: requirements
+    stage: REQUIREMENTS
+    dependsOn: []
+    requiresApproval: true
+    maxRetries: 0
+    compensation: false
+    exitGate: "requireArtifact:specPath"
+
+  - id: design
+    stage: DESIGN
+    dependsOn: [requirements]
+    requiresApproval: false
+    maxRetries: 1
+    compensation: false
+    executor: llm
+    entryGate: "requireContext:requirements.specPath"
+    exitGate: "requireArtifact:designPath"
+
+  - id: implementation
+    stage: IMPLEMENTATION
+    dependsOn: [design]
+    requiresApproval: false
+    maxRetries: 2
+    compensation: true
+    executor: llm
+    entryGate: "requireContext:design.designPath"
+    exitGate: "requireArtifact:commit"
+
+  - id: testing
+    stage: TESTING
+    dependsOn: [implementation]
+    requiresApproval: false
+    maxRetries: 2
+    compensation: false
+    executor: llm
+    entryGate: "requireContext:implementation.commit"
+    exitGate: "requireArtifact:testReport"
+
+  - id: documentation
+    stage: DOCUMENTATION
+    dependsOn: [implementation]
+    requiresApproval: false
+    maxRetries: 1
+    compensation: false
+    executor: llm
+    entryGate: "requireContext:implementation.commit"
+    exitGate: "requireArtifact:docsPath"
+
+  - id: release_readiness
+    stage: RELEASE_READINESS
+    dependsOn: [testing, documentation]
+    requiresApproval: true
+    maxRetries: 0
+    compensation: false
+    entryGate: "requireContext:testing.testReport"

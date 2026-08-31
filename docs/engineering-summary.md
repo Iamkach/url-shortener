@@ -4,10 +4,14 @@
 
 The assignment states plainly that the URL shortener is the vehicle and the
 orchestration layer is what's graded. The build order followed from that: the
-orchestrator was designed and fully tested (15 tests, in isolation, against synthetic
-fixtures) **before** any URL-shortener feature work started, so the engine's governance
-guarantees (parallel sync, retry/fallback/rollback, safe-stop, re-plan, policy gates,
-audit trail, metrics) were proven independent of whatever the product ended up needing.
+orchestrator was designed and fully tested (15 core governance tests, in isolation, against
+synthetic fixtures) **before** any URL-shortener feature work started, so the engine's
+governance guarantees (parallel sync, retry/fallback/rollback, safe-stop, re-plan, policy
+gates, audit trail, metrics) were proven independent of whatever the product ended up
+needing. A later addition — a pluggable `NodeExecutor` seam with an opt-in Anthropic-backed
+executor and an autonomous run mode (`docs/architecture.md` §3.1) — added 12 more tests
+without changing that core; `manual` execution stays the default so the governance suite
+stays deterministic.
 
 Everything after that followed a **spec-driven** loop, repeated for each of the three
 required scenario types:
@@ -31,7 +35,7 @@ greenfield/brownfield/ambiguous.
 ## 2. Artifacts Produced
 
 - **Working prototype**: two independently runnable Spring Boot services
-  (`orchestrator`, `url-shortener-service`), 71 automated tests, `mvn test` green.
+  (`orchestrator`, `url-shortener-service`), 83 automated tests, `mvn test` green.
 - **Orchestration engine**: `orchestrator/` — DAG/state-machine, human gates, retry/
   fallback/rollback, safe-stop, dynamic re-plan, policy guardrails, audit trail,
   reliability metrics. See `docs/architecture.md`.
@@ -59,7 +63,7 @@ Full table in `docs/testing-and-tradeoffs.md` §3-4. Highlights:
   short codes, in-memory single-instance rate limiting, fire-and-forget async click
   recording, soft-expire instead of a purge job, no auth model anywhere. Each has a
   documented reason and a documented "what would change it."
-- **Validation performed**: 71 unit/integration tests; three live orchestrator runs with
+- **Validation performed**: 83 unit/integration tests; three live orchestrator runs with
   exported, committed audit logs; the orchestrator's own aggregate `/metrics` endpoint
   confirmed correct across all three runs (3/3 completed, 100% success rate, consistent
   retry/rollback counts).

@@ -2,10 +2,10 @@
 
 ## 1. Testing Approach
 
-**71 automated tests total** (`mvn test` from the repo root), no manual-only coverage
+**83 automated tests total** (`mvn test` from the repo root), no manual-only coverage
 claimed anywhere in this write-up.
 
-### `orchestrator` — 15 tests
+### `orchestrator` — 27 tests (15 core governance + 12 executor seam)
 
 | Class | Focus |
 |---|---|
@@ -13,6 +13,9 @@ claimed anywhere in this write-up.
 | `WorkflowEngineDiamondTest` | `@SpringBootTest` against a dedicated `test-diamond.yaml` fixture (A → {B, C} → D, C has a fallback, D is a human gate): parallel dispatch + join synchronization, retry exhaustion → rollback, approval rejection → rollback, fallback triggering, dynamic re-plan (`invalidate`), pause/resume safe-stop. |
 | `WorkflowEnginePolicyAndSdlcTest` | Entry-gate denial (`test-gate.yaml`), exit-gate denial on missing artifact, and a full `sdlc-standard` happy path asserting namespaced context propagation across every stage. |
 | `MetricsServiceTest` | Retry/rollback counts and aggregate success rate computed correctly from a real run's audit trail. |
+| `NodeExecutorRegistryTest` | Executor selection: node-level `executor:` overrides global mode, fallback to `manual` when a requested executor has no bean, `validate()` rejects an unknown executor name. |
+| `LlmNodeExecutorTest` | Prompt assembly carries upstream namespaced context; complete/fail parsing; malformed reply → `fail` (not an exception); model-call exception → `fail`; per-run model-call budget exhaustion → `fail`. Uses a mocked `ChatPort` — no network. |
+| `WorkflowEngineAutonomousTest` | `@SpringBootTest` driving `test-autonomous.yaml` end to end with a deterministic `ScriptedNodeExecutor`: non-gate nodes execute with no REST callback, both human gates still block, and a scripted first-attempt failure still drives `RETRY_ATTEMPTED` → recovery. |
 
 These are deliberately **engine tests against synthetic fixtures**, not just "the three
 scenarios happened to work." The synthetic fixtures let retry/rollback/fallback/replan

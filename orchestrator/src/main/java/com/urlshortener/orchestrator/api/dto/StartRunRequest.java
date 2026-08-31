@@ -7,6 +7,8 @@ import java.util.Map;
 public record StartRunRequest(
         @NotBlank String workflowDefinitionId,
         Map<String, String> initialContext,
-        @NotBlank String createdBy
+        @NotBlank String createdBy,
+        /** When true, non-manual nodes are executed by their NodeExecutor instead of waiting for a callback. */
+        boolean autonomous
 ) {
 }

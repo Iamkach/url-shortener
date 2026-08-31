@@ -25,6 +25,13 @@ public class NodeDefinition {
     private String fallbackNodeId;
     private boolean compensation = false;
 
+    /**
+     * Which {@code NodeExecutor} does this node's work: {@code manual} (default — engine waits for a
+     * REST callback), {@code scripted}, or {@code llm}. Null/blank means "use the global
+     * {@code orchestrator.executor.mode}". Validated in {@link WorkflowDefinition#validate()}.
+     */
+    private String executor;
+
     /** Gate expression evaluated before the node may start running, e.g. "requireContext:design.designPath". */
     private String entryGate;
 

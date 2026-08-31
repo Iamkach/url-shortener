@@ -20,3 +20,11 @@ spring:
 
 orchestrator:
   workflow-definitions-path: classpath:workflows
+  executor:
+    # Global default executor for nodes that don't set their own `executor:`.
+    # manual (default) = engine waits for a REST callback; scripted = canned (tests); llm = real model call.
+    mode: ${ORCHESTRATOR_EXECUTOR_MODE:manual}
+    llm:
+      model: ${ORCHESTRATOR_LLM_MODEL:claude-opus-5}  # set to claude-sonnet-5 for a cheaper demo run
+      max-model-calls-per-run: 12
+      max-output-tokens: 4096
