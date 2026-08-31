@@ -54,14 +54,29 @@ node to `RUNNING` (or `AWAITING_APPROVAL`) and something reports back via
   callback (a human, or an agent driving the API by hand). This is the mode all 15 core
   engine tests are built around: zero network, fully deterministic.
 - **`scripted`** — canned results, for tests and offline demos.
-- **`llm`** — a real Anthropic Messages API call (`AnthropicChatPort`). Input: the node
-  definition (stage, gates) plus the accumulated namespaced context. Output: an artifact map
-  and a pass/fail, fed straight back through `complete`/`fail`.
+- **`agent`** — the headline. `AgentNodeExecutor` spawns **Claude Code headless**
+  (`claude -p --output-format json …`) as the node's worker via `AgentInvocationPort` →
+  `ClaudeCliAgentPort` → a `ProcessRunner` seam: real tools (Read, Edit, Bash), a real
+  `mvn test`, a real `git commit`. Agent-agnostic — the CLI is `ORCH_AGENT_CMD` (→ `codex`,
+  a local agent). The child prints a result JSON object; `NodeResultParser` extracts
+  `status` / `artifacts` / `notes`. This is the deployed orchestrator actually invoking an
+  agent to do a node's SDLC work.
+- **`llm`** — one Messages API call per node (`LlmNodeExecutor`). Provider-agnostic via
+  `orchestrator.executor.llm.provider`: `anthropic` (`AnthropicChatPort`) or
+  `openai-compatible` (`OpenAiCompatibleChatPort` — any `/chat/completions` server: Ollama,
+  LM Studio, vLLM). The model returns text only; it never touches the repo.
+
+`agent` and both `ChatPort`s are `@ConditionalOnProperty` — in the default `manual` boot none
+are instantiated, so `mvn test` and a normal run need no `claude` CLI and no API key.
 
 The executor is just an automated stand-in for the human/agent that used to POST back —
 **governance is byte-for-byte identical in every mode**: entry/exit policy gates, human
 approval gates, bounded retry, fallback, rollback, the audit trail and the derived metrics
-all run exactly the same whether a result came from `curl` or from a model. See §3.6.
+all run exactly the same whether a result came from `curl`, a model, or a `claude -p` child.
+See §3.6. An always-on `PreToolUse` hook (`.claude/hooks/orch_guard.py`) enforces the
+converse: inside this repo, product code (`*/src/**`, `specs/**`) may only be edited from
+within an orchestrator run whose current node's stage permits that path
+(`ORCH_ALLOW_PATHS`).
 
 ### 3.1a Execution modes and the autonomous runner
 
@@ -78,18 +93,24 @@ executor. **Human approval gates still block**: an autonomous run stops dead at
 sequenceDiagram
     participant Eng as WorkflowEngine
     participant Evt as NodeDispatchListener
-    participant Ex as LlmNodeExecutor
-    participant API as Anthropic API
-    Eng->>Eng: dispatchNode(impl) → RUNNING, audit NODE_DISPATCHED
+    participant Ex as AgentNodeExecutor
+    participant CC as claude -p (child)
+    Eng->>Eng: dispatchNode(implementation) → RUNNING, audit NODE_DISPATCHED
     Eng-->>Evt: NodeDispatchedEvent (after commit)
     Evt->>Ex: execute(node + namespaced context)
-    Ex->>API: messages.create(stage prompt + context)
-    API-->>Ex: {status, artifacts, notes}
-    Ex-->>Eng: complete(impl, artifacts) / fail(impl, reason)
-    Eng->>Eng: exit gate → finishNodeSuccessfully → dispatchReady → next node
+    Ex->>CC: spawn: stage prompt on stdin, ORCH_ALLOW_PATHS in env
+    Note over CC: Read specs/004 · Edit src/main · mvn test · git commit<br/>(each Edit checked by the PreToolUse hook)
+    CC-->>Ex: {"status":"complete","artifacts":{"commit":"<sha>"},"notes":"…"}
+    Ex-->>Eng: complete(implementation, artifacts)
+    Eng->>Eng: exit gate → dispatchReady → testing + documentation together
+    par two concurrent children
+        Eng-->>Ex: execute(testing) → claude -p (src/test/**)
+    and
+        Eng-->>Ex: execute(documentation) → claude -p (docs/**, README.md)
+    end
 ```
 
-`docs/scenario-runs/004-autonomous-llm.json` is one such run exported end to end.
+`docs/scenario-runs/004-autonomous-agent.json` is one such run exported end to end.
 
 ### 3.2 The DAG
 
@@ -243,7 +264,7 @@ sequenceDiagram
 
 | Decision | Alternative considered | Why this way |
 |---|---|---|
-| Work reaches nodes through a pluggable `NodeExecutor` seam; `manual` is the default | Engine hard-wired to call an LLM per node | Default `manual` keeps the 15 core engine tests deterministic and network-free. An opt-in `llm` executor (`executor: llm`, or `orchestrator.executor.mode=llm`) plugs a real model into the same `dispatchNode` seam — gates, approvals, retry/fallback/rollback, audit and metrics are identical in both modes (§3.1, §3.1a). Proven end to end in `docs/scenario-runs/004-autonomous-llm.json` |
+| Work reaches nodes through a pluggable `NodeExecutor` seam; `manual` is the default | Engine hard-wired to call an LLM/agent per node | Default `manual` keeps the 15 core engine tests deterministic and network-free. Opt-in `agent` (spawns `claude -p` as the node's worker — real edits, `mvn test`, commit; agent CLI swappable) and `llm` (one model call; Anthropic or any OpenAI-compatible server) executors plug into the same `dispatchNode` seam — gates, approvals, retry/fallback/rollback, audit and metrics are identical in every mode (§3.1, §3.1a). All `@ConditionalOnProperty`, so the default boot needs no CLI or key. Proven end to end in `docs/scenario-runs/004-autonomous-agent.json` |
 | Definitions in YAML, runs in JPA | Both in JPA, or both as code | Templates are reusable and reviewable as plain config; runs need audit-grade persistence and query support JPA gives for free |
 | Parallel dispatch via shared-dependency readiness, not an explicit fork/join primitive | A dedicated `ParallelGroup` construct | The DAG already expresses it — two nodes with the same completed dependency naturally both become ready in the same pass; adding a separate primitive would be redundant machinery |
 | Fallback nodes gated on primary failure | Let fallback nodes dispatch whenever their own deps are satisfied | The naive version was actually implemented first and caught by `WorkflowEngineDiamondTest` — see the bug note below |

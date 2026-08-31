@@ -142,6 +142,8 @@ a bolted-on barrier primitive.
 | Policy guardrails | `entryGate`/`exitGate` YAML expressions (`requireContext`, `requireArtifact`, `denyIfContext`) evaluated on every node's entry and exit; a violation is an immediate governance stop — no retry, no fallback, straight to rollback |
 | Audit trail | Every transition is an append-only `AuditEventEntity` — nothing about run history is inferred after the fact |
 | Reliability metrics | `MetricsService` derives success rate, retry/rollback frequency, MTTR, and latency purely from the audit trail and node-execution rows |
+| Node execution | Pluggable `NodeExecutor` (`orchestrator.executor.mode`): `manual` (default — wait for a REST callback), `scripted` (tests), `llm` (one model call; Anthropic or any OpenAI-compatible server), **`agent`** (spawns `claude -p` as the node's worker — real Read/Edit/Bash, `mvn test`, `git commit`; CLI swappable via `ORCH_AGENT_CMD`). All non-`manual` results flow back through the same `complete`/`fail` + gates. |
+| Edit governance | Committed `.claude/` — an always-on `PreToolUse` hook (`orch_guard.py`) that denies edits to `*/src/**` and `specs/**` unless made from inside an orchestrator run whose node stage permits the path; plus a `/sdlc-run` skill that starts an autonomous run and relays the two approval gates to a human |
 
 See [`docs/architecture.md`](docs/architecture.md) for the component map, full control-flow
 sequence diagram, and the key-decisions table with alternatives considered.
@@ -172,11 +174,11 @@ design work began:
 All figures below are pulled directly from `mvn test` output and the committed
 `docs/scenario-runs/*.json` exports — reproducible, not asserted.
 
-**Test suite** (`mvn test`, 83/83 passing):
+**Test suite** (`mvn test`, 117/117 passing):
 
 | Module | Tests | Focus |
 |---|---|---|
-| `orchestrator` | 27 | 15 core governance tests (DAG validation, parallel dispatch + join sync, retry exhaustion → rollback, approval rejection → rollback, fallback triggering, dynamic re-plan, pause/resume, policy-gate denial, metrics) + 12 executor-seam tests (`NodeExecutorRegistry` selection, `LlmNodeExecutor` prompt/parse/budget with a mocked `ChatPort`, autonomous end-to-end run + retry ladder via a scripted executor) |
+| `orchestrator` | 61 | 15 core governance tests (DAG validation, parallel dispatch + join sync, retry exhaustion → rollback, approval rejection → rollback, fallback triggering, dynamic re-plan, pause/resume, policy-gate denial, metrics) + 46 executor tests: `NodeExecutorRegistry` selection, shared `NodeResultParser`, `LlmNodeExecutor` + `AgentNodeExecutor` prompt/parse/budget/failure-modes against fake ports, `ClaudeCliAgentPort` command/env/stdin rendering via a fake `ProcessRunner`, `OpenAiCompatibleChatPort` against an in-process HTTP stub, `ChatPort` provider selection, autonomous end-to-end + retry ladder (scripted) + `testing ∥ documentation` concurrency proof (latched fake agent port), and `OrchGuardHookTest` shelling the real `PreToolUse` hook |
 | `url-shortener-service` | 56 | Base62 codec, URL/alias validation, token-bucket rate limiter, service-layer logic against mocked repos, full `@SpringBootTest`/MockMvc integration across shorten/redirect/analytics/rate-limit/custom-alias/expiry against a real in-memory H2 instance |
 
 **Live orchestrator runs** (one per scenario, `sdlc-standard` workflow, all 6 nodes each):
@@ -212,7 +214,7 @@ documented "what would change it" (full table in
 
 | Decision | Alternative considered | Why this way |
 |---|---|---|
-| Work reaches nodes through a pluggable `NodeExecutor` seam; `manual` is the default, `llm` is opt-in | Engine hard-wired to call an LLM per node | Default `manual` keeps the core engine tests deterministic and network-free; the opt-in `llm` executor plugs a real Anthropic call into the same `dispatchNode` seam with governance (gates, approvals, retry/fallback/rollback, audit, metrics) unchanged — see `docs/architecture.md` §3.1 and `docs/scenario-runs/004-autonomous-llm.json` |
+| Work reaches nodes through a pluggable `NodeExecutor` seam; `manual` is the default | Engine hard-wired to call an LLM/agent per node | Default `manual` keeps the core engine tests deterministic and network-free. Opt-in `agent` (spawns `claude -p` as the node's worker — real edits, `mvn test`, `git commit`; CLI swappable via `ORCH_AGENT_CMD`) and `llm` (one model call; Anthropic or any OpenAI-compatible server) plug into the same `dispatchNode` seam with governance (gates, approvals, retry/fallback/rollback, audit, metrics) unchanged, plus an always-on `PreToolUse` hook confining product-code edits to an orchestrator run — see `docs/architecture.md` §3.1 and `docs/scenario-runs/004-autonomous-agent.json` |
 | Definitions in YAML, runs in JPA | Both in JPA, or both as code | Templates are reusable/reviewable as plain config; runs need audit-grade persistence and query support |
 | Parallel dispatch via shared-dependency readiness | A dedicated `ParallelGroup` construct | The DAG already expresses it — adding a separate primitive would be redundant machinery |
 | Fallback nodes gated on primary failure | Let fallback nodes dispatch whenever their own deps are satisfied | The naive version was implemented first and caught by the engine's own test suite (see Results above) |
@@ -247,7 +249,7 @@ Full detail, plus the testing approach behind these figures, in
 ```bash
 # Build & run the full test suite (both modules)
 mvn test
-# -> 83 tests: 27 orchestrator, 56 url-shortener-service
+# -> 117 tests: 61 orchestrator, 56 url-shortener-service
 ```
 
 Each module is an independent Spring Boot app — run each from *inside* its own directory
@@ -315,8 +317,8 @@ Full request/response examples in [`url-shortener-service/README.md`](url-shorte
 ## Testing
 
 ```bash
-mvn test                              # everything (83 tests)
-mvn -pl orchestrator test             # orchestrator only (27 tests)
+mvn test                              # everything (117 tests)
+mvn -pl orchestrator test             # orchestrator only (61 tests)
 mvn -pl url-shortener-service test    # product only (56 tests)
 mvn test -Dtest=UrlShortenerServiceTest#someMethod   # a single test
 ```
@@ -330,6 +332,9 @@ are in [`docs/testing-and-tradeoffs.md`](docs/testing-and-tradeoffs.md).
 orchestrator/            DAG/state-machine SDLC orchestration engine (port 8081)
 url-shortener-service/   The URL shortener product (port 8080)
 specs/                   spec.md / plan.md / tasks.md per feature, spec-driven
+.claude/                 always-on PreToolUse edit-governance hook + hooks/README.md,
+                         constrained sdlc-testing / sdlc-documentation agent profiles,
+                         the /sdlc-run harness skill
 docs/
   architecture.md          components, orchestration model, control flow, key decisions
   engineering-summary.md   plan/rationale, risks, assumptions, limitations
