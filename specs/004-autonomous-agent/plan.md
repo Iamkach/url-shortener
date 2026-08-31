@@ -29,6 +29,9 @@ all existing endpoints are untouched.
 ## Orchestration
 
 This plan is itself the `design` artifact the autonomous run's `design` node is expected to
-produce (or something equivalent the model generates). Executed via `sdlc-autonomous` with
-`ORCHESTRATOR_EXECUTOR_MODE=llm` — see `spec.md` §2. Evidence exported to
-`docs/scenario-runs/004-autonomous-llm.json`.
+produce (or something equivalent the agent generates). Executed via `sdlc-autonomous` with
+`ORCHESTRATOR_EXECUTOR_MODE=agent` — the `design` node's `claude -p` child writes/updates this
+file and `tasks.md` (its `ORCH_ALLOW_PATHS` is `specs/**/plan.md,specs/**/tasks.md,docs/**`),
+`implementation` edits `url-shortener-service/src/**` and commits, `testing` and `documentation`
+run concurrently on disjoint trees. See `spec.md` §2. Evidence exported to
+`docs/scenario-runs/004-autonomous-agent.json`.
