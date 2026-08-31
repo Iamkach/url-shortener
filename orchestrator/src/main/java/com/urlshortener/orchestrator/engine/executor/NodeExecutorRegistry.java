@@ -23,7 +23,14 @@ public class NodeExecutorRegistry {
     private final ExecutorProperties properties;
 
     public NodeExecutorRegistry(List<NodeExecutor> executors, ExecutorProperties properties) {
-        this.byId = executors.stream().collect(Collectors.toMap(NodeExecutor::id, Function.identity()));
+        this.byId = executors.stream().collect(Collectors.toMap(
+                NodeExecutor::id,
+                Function.identity(),
+                (a, b) -> {
+                    log.warn("Duplicate NodeExecutor id '{}' ({} and {}); keeping the first",
+                            a.id(), a.getClass().getName(), b.getClass().getName());
+                    return a;
+                }));
         this.properties = properties;
     }
 
