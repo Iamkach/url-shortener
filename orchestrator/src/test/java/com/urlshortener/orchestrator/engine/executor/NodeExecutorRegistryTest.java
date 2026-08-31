@@ -7,12 +7,21 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class NodeExecutorRegistryTest {
 
     private final ManualNodeExecutor manual = new ManualNodeExecutor();
     private final ScriptedNodeExecutor scripted = new ScriptedNodeExecutor();
+    private final NodeExecutor agent = new NodeExecutor() {
+        @Override public String id() {
+            return AgentNodeExecutor.ID;
+        }
+        @Override public NodeExecutionResult execute(NodeExecutionRequest request) {
+            return NodeExecutionResult.fail("stub");
+        }
+    };
 
     private NodeExecutorRegistry registry(String globalMode) {
         ExecutorProperties props = new ExecutorProperties();
@@ -52,5 +61,20 @@ class NodeExecutorRegistryTest {
         assertThatThrownBy(def::validate)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("unknown executor");
+    }
+
+    @Test
+    void agentExecutorResolvesWhenItsBeanIsPresent() {
+        ExecutorProperties props = new ExecutorProperties();
+        props.setMode("manual");
+        NodeExecutorRegistry reg = new NodeExecutorRegistry(List.of(manual, agent), props);
+        assertThat(reg.resolve(node("agent"))).isSameAs(agent);
+        assertThat(reg.isManual(node("agent"))).isFalse();
+    }
+
+    @Test
+    void agentIsAcceptedByWorkflowValidation() {
+        WorkflowDefinition def = new WorkflowDefinition("wf", "ok", List.of(node("agent")));
+        assertThatCode(def::validate).doesNotThrowAnyException();
     }
 }

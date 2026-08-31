@@ -27,8 +27,8 @@ public class NodeDefinition {
 
     /**
      * Which {@code NodeExecutor} does this node's work: {@code manual} (default — engine waits for a
-     * REST callback), {@code scripted}, or {@code llm}. Null/blank means "use the global
-     * {@code orchestrator.executor.mode}". Validated in {@link WorkflowDefinition#validate()}.
+     * REST callback), {@code scripted}, {@code llm}, or {@code agent}. Null/blank means "use the
+     * global {@code orchestrator.executor.mode}". Validated in {@link WorkflowDefinition#validate()}.
      */
     private String executor;
 
