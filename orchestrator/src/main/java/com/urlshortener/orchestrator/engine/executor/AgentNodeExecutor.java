@@ -12,7 +12,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +38,15 @@ public class AgentNodeExecutor implements NodeExecutor {
     private final AgentInvocationPort agent;
     private final ExecutorProperties properties;
     private final ObjectMapper json = new ObjectMapper();
-    private final Map<String, Integer> callsPerRun = new ConcurrentHashMap<>();
+    private static final int MAX_TRACKED_RUNS = 10_000;
+    // Bounded (self-evicting) to avoid unbounded growth for long-lived processes (finding #3).
+    private final Map<String, Integer> callsPerRun = java.util.Collections.synchronizedMap(
+            new java.util.LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Integer> eldest) {
+                    return size() > MAX_TRACKED_RUNS;
+                }
+            });
 
     public AgentNodeExecutor(AgentInvocationPort agent, ExecutorProperties properties) {
         this.agent = agent;

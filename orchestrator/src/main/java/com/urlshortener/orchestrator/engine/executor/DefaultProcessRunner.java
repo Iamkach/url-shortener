@@ -43,6 +43,11 @@ public class DefaultProcessRunner implements ProcessRunner {
             return new Outcome(-1, "", "failed to start '" + command.get(0) + "': " + e.getMessage(), false);
         }
 
+        // Start the drains before touching stdin: a child that writes more than the OS pipe buffer
+        // (~64 KB) before consuming all of stdin would otherwise deadlock against the write below.
+        CompletableFuture<String> out = readStream(process.getInputStream());
+        CompletableFuture<String> err = readStream(process.getErrorStream());
+
         if (stdin != null) {
             try (OutputStream os = process.getOutputStream()) {
                 os.write(stdin.getBytes(StandardCharsets.UTF_8));
@@ -56,9 +61,6 @@ public class DefaultProcessRunner implements ProcessRunner {
                 // child may have already exited
             }
         }
-
-        CompletableFuture<String> out = readStream(process.getInputStream());
-        CompletableFuture<String> err = readStream(process.getErrorStream());
 
         boolean finished;
         try {

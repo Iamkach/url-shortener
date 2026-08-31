@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Runs a node's SDLC work by asking a model. Loaded only when {@code orchestrator.executor.mode=llm}.
@@ -28,7 +27,15 @@ public class LlmNodeExecutor implements NodeExecutor {
     private final ChatPort chat;
     private final ExecutorProperties properties;
     private final ObjectMapper json = new ObjectMapper();
-    private final Map<String, Integer> callsPerRun = new ConcurrentHashMap<>();
+    private static final int MAX_TRACKED_RUNS = 10_000;
+    // Bounded (self-evicting) to avoid unbounded growth for long-lived processes (finding #3).
+    private final Map<String, Integer> callsPerRun = java.util.Collections.synchronizedMap(
+            new java.util.LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Integer> eldest) {
+                    return size() > MAX_TRACKED_RUNS;
+                }
+            });
 
     public LlmNodeExecutor(ChatPort chat, ExecutorProperties properties) {
         this.chat = chat;
