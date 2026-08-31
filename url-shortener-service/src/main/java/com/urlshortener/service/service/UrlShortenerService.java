@@ -56,4 +56,14 @@ public class UrlShortenerService {
         return repository.findByShortCode(shortCode)
                 .orElseThrow(() -> new NoSuchElementException("No short URL found for code: " + shortCode));
     }
+
+    /** resolve(), then enforce the spec-003 soft-expire rule shared by the redirect and QR read paths. */
+    @Transactional(readOnly = true)
+    public ShortUrl resolveUnexpired(String shortCode) {
+        ShortUrl entity = resolve(shortCode);
+        if (entity.getExpiresAt() != null && entity.getExpiresAt().isBefore(Instant.now())) {
+            throw new LinkExpiredException("Short link '" + shortCode + "' expired at " + entity.getExpiresAt());
+        }
+        return entity;
+    }
 }
