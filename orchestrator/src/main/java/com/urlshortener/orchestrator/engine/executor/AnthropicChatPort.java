@@ -6,26 +6,40 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.ThinkingConfigAdaptive;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
 
 /**
- * Real Anthropic Messages API call. Only loaded when {@code orchestrator.executor.mode=llm}, so the
- * app boots fine (and every test runs) without an {@code ANTHROPIC_API_KEY} in the default mode.
+ * Real Anthropic Messages API call — the default {@link ChatPort} provider. Wired by
+ * {@link ChatPortConfig} only when {@code orchestrator.executor.mode=llm} and
+ * {@code orchestrator.executor.llm.provider=anthropic} (the default), so the app boots (and every
+ * test runs) without an {@code ANTHROPIC_API_KEY} in any other mode.
+ *
+ * <p>The SDK client is built lazily on first use, not in the constructor, so bean wiring / provider
+ * selection never needs a key.
  */
-@Component
-@ConditionalOnProperty(prefix = "orchestrator.executor", name = "mode", havingValue = "llm")
 @Slf4j
 public class AnthropicChatPort implements ChatPort {
 
-    private final AnthropicClient client;
     private final ExecutorProperties properties;
+    private volatile AnthropicClient client;
 
     public AnthropicChatPort(ExecutorProperties properties) {
         this.properties = properties;
-        this.client = AnthropicOkHttpClient.fromEnv(); // reads ANTHROPIC_API_KEY / ant profile
+    }
+
+    private AnthropicClient client() {
+        AnthropicClient c = client;
+        if (c == null) {
+            synchronized (this) {
+                c = client;
+                if (c == null) {
+                    c = AnthropicOkHttpClient.fromEnv(); // reads ANTHROPIC_API_KEY / ant profile
+                    client = c;
+                }
+            }
+        }
+        return c;
     }
 
     @Override
@@ -37,7 +51,7 @@ public class AnthropicChatPort implements ChatPort {
                 .system(systemPrompt)
                 .addUserMessage(userPrompt)
                 .build();
-        Message response = client.messages().create(params);
+        Message response = client().messages().create(params);
         return response.content().stream()
                 .flatMap(block -> block.text().stream())
                 .map(text -> text.text())
