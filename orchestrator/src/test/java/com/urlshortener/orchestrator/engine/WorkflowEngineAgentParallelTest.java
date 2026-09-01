@@ -1,6 +1,7 @@
 package com.urlshortener.orchestrator.engine;
 
 import com.urlshortener.orchestrator.domain.Actor;
+import com.urlshortener.orchestrator.domain.EventType;
 import com.urlshortener.orchestrator.domain.RunStatus;
 import com.urlshortener.orchestrator.engine.executor.AgentInvocationPort;
 import com.urlshortener.orchestrator.engine.executor.AgentInvocationResult;
@@ -90,10 +91,25 @@ class WorkflowEngineAgentParallelTest {
 
         assertThat(engine.getAudit(runId))
                 .anySatisfy(e -> assertThat(e.getActor()).isEqualTo(Actor.AGENT));
+
+        // The agent's free-text notes (far longer than the 255-char audit `message` column) must
+        // land intact on the NODE_COMPLETED event's `rationale` — never concatenated into `message`.
+        // Regression guard for the audit-persist overflow that wedged the first live 004 run.
+        assertThat(engine.getAudit(runId))
+                .filteredOn(e -> e.getEventType() == EventType.NODE_COMPLETED
+                        && "Node completed by agent".equals(e.getMessage()))
+                .isNotEmpty()
+                .allSatisfy(e -> assertThat(e.getRationale()).isEqualTo(LatchingAgentPort.LONG_NOTES));
     }
 
     /** Fake port: design/impl return immediately; test + docs must meet at a 2-party barrier. */
     static class LatchingAgentPort implements AgentInvocationPort {
+
+        /** >255 chars: overflows the audit `message` column if notes were concatenated into it. */
+        static final String LONG_NOTES = "Implemented GET /api/urls/{code}/qr end to end: added QrCodeService "
+                + "(ZXing QRCodeWriter -> PNG byte[]), QrController resolving the code through UrlShortenerService "
+                + "with the shared soft-expire check, wired the image/png response, added ZXing core+javase to the "
+                + "service pom, ran mvn -pl url-shortener-service test to green, and committed on the run branch.";
 
         private static final Map<String, Map<String, String>> ARTIFACTS = Map.of(
                 "design", Map.of("designPath", "specs/x/plan.md"),
@@ -131,7 +147,7 @@ class WorkflowEngineAgentParallelTest {
                 sb.append(sep).append('"').append(e.getKey()).append("\":\"").append(e.getValue()).append('"');
                 sep = ",";
             }
-            return sb.append("},\"notes\":\"fake agent\"}").toString();
+            return sb.append("},\"notes\":\"").append(LONG_NOTES).append("\"}").toString();
         }
     }
 

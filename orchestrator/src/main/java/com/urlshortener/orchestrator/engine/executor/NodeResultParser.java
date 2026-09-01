@@ -48,14 +48,61 @@ public final class NodeResultParser {
         }
     }
 
-    /** Tolerates prose or {@code ```json} fences around the object. */
+    /**
+     * Tolerates prose or {@code ```json} fences around the object. Returns the <em>last</em>
+     * balanced {@code {…}} object in the text: workers are told to "finish by printing ONLY the
+     * JSON object", but their preamble often contains stray braces (a {@code {code}} path segment,
+     * a {@code ${…}} snippet), so a naive first-{@code &#123;}/last-{@code &#125;} span does not parse.
+     * Brace counting is string- and escape-aware. Falls back to the outermost span.
+     */
     static String extractJsonObject(String raw) {
         if (raw == null) {
             return null;
         }
-        int start = raw.indexOf('{');
         int end = raw.lastIndexOf('}');
-        return start >= 0 && end > start ? raw.substring(start, end + 1) : null;
+        while (end >= 0) {
+            int start = matchingOpenBrace(raw, end);
+            if (start >= 0) {
+                return raw.substring(start, end + 1);
+            }
+            end = raw.lastIndexOf('}', end - 1);
+        }
+        int first = raw.indexOf('{');
+        int last = raw.lastIndexOf('}');
+        return first >= 0 && last > first ? raw.substring(first, last + 1) : null;
+    }
+
+    /** Index of the {@code &#123;} that balances the {@code &#125;} at {@code closeIdx}, or -1. */
+    private static int matchingOpenBrace(String s, int closeIdx) {
+        int depth = 0;
+        boolean inString = false;
+        for (int i = closeIdx; i >= 0; i--) {
+            char c = s.charAt(i);
+            if (inString) {
+                if (c == '"' && !isEscaped(s, i)) {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                inString = true;
+            } else if (c == '}') {
+                depth++;
+            } else if (c == '{') {
+                if (--depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isEscaped(String s, int quoteIdx) {
+        int backslashes = 0;
+        for (int i = quoteIdx - 1; i >= 0 && s.charAt(i) == '\\'; i--) {
+            backslashes++;
+        }
+        return backslashes % 2 == 1;
     }
 
     private static String truncate(String s) {

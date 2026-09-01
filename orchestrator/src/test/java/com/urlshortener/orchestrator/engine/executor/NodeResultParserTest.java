@@ -42,6 +42,20 @@ class NodeResultParserTest {
     }
 
     @Test
+    void strayBracesInThePreambleDoNotBreakExtraction() {
+        // Regression: the live 004 documentation node failed here — its final message described the
+        // `GET /api/urls/{code}/qr` path (and a `${...}` snippet) before the real result object, so
+        // a first-'{' / last-'}' span fed Jackson "{code}/qr … {" and threw.
+        NodeExecutionResult r = NodeResultParser.parse(
+                "Updated docs for GET /api/urls/{code}/qr and the ${baseUrl} note.\n"
+                        + "{\"status\":\"complete\",\"artifacts\":{\"docsPath\":\"docs/architecture.md\"},"
+                        + "\"notes\":\"documented the {code} path param and 200/404/410\"}");
+        assertThat(r.outcome()).isEqualTo(NodeExecutionResult.Outcome.COMPLETE);
+        assertThat(r.artifacts()).containsEntry("docsPath", "docs/architecture.md");
+        assertThat(r.notes()).contains("{code}");
+    }
+
+    @Test
     void noJsonObjectMapsToFailNotException() {
         NodeExecutionResult r = NodeResultParser.parse("I cannot help with that.");
         assertThat(r.outcome()).isEqualTo(NodeExecutionResult.Outcome.FAIL);

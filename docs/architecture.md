@@ -214,7 +214,7 @@ captures a snapshot after each of the three demo scenarios.
 domain/       ShortUrl, ClickEvent (JPA)
 repository/   ShortUrlRepository, ClickEventRepository
 service/      UrlShortenerService, Base62Codec, UrlValidator, ClickRecordingService,
-              RateLimiter
+              RateLimiter, QrCodeRenderer
 api/          UrlController, RedirectController, AnalyticsController,
               GlobalExceptionHandler
 config/       RateLimitInterceptor, WebMvcConfig
@@ -232,6 +232,10 @@ impact analysis):
 - **003** (ambiguous → ambiguity resolved with a human before design): optional
   `customAlias` (validated, collision-checked, reserved-word-blocked), soft-expire
   enforcement on the redirect path only.
+- **004** (well-scoped enhancement, built end to end by the `agent` executor):
+  `GET /api/urls/{code}/qr` — 256×256 PNG QR code (ZXing `core`, `QrCodeRenderer`)
+  encoding the short URL; `resolveUnexpired` now shares the soft-expire check between the
+  redirect and QR read paths. See [`qr-code-endpoint.md`](qr-code-endpoint.md).
 
 ## 5. Control Flow — One Scenario End to End
 

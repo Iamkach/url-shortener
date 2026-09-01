@@ -120,6 +120,17 @@ public class WorkflowEngine {
 
     @Transactional
     public WorkflowRunEntity complete(String runId, String nodeId, Map<String, String> artifacts, String actorName) {
+        return complete(runId, nodeId, artifacts, actorName, null);
+    }
+
+    /**
+     * Same as {@link #complete(String, String, Map, String)} but records {@code rationale}
+     * (e.g. an executor's free-text notes) on the {@code NODE_COMPLETED} audit event. The
+     * rationale goes to the wide {@code rationale} column, never the 255-char {@code message}.
+     */
+    @Transactional
+    public WorkflowRunEntity complete(String runId, String nodeId, Map<String, String> artifacts,
+                                      String actorName, String rationale) {
         synchronized (lockFor(runId)) {
             WorkflowRunEntity run = requireRun(runId);
             WorkflowDefinition def = registry.require(run.getWorkflowDefinitionId());
@@ -138,7 +149,7 @@ public class WorkflowEngine {
                 handlePolicyViolation(def, run, nd, node, "exit gate violation: " + exit.reason());
                 return run;
             }
-            finishNodeSuccessfully(run, nd, node, actorName);
+            finishNodeSuccessfully(run, nd, node, actorName, rationale);
             dispatchReady(def, run);
             return run;
         }
@@ -208,7 +219,7 @@ public class WorkflowEngine {
                 return run;
             }
             audit(run, nodeId, Actor.HUMAN, EventType.APPROVAL_GRANTED, "Approved by " + approver, rationale);
-            finishNodeSuccessfully(run, nd, node, approver);
+            finishNodeSuccessfully(run, nd, node, approver, null);
             dispatchReady(def, run);
             return run;
         }
@@ -433,13 +444,15 @@ public class WorkflowEngine {
         }
     }
 
-    private void finishNodeSuccessfully(WorkflowRunEntity run, NodeDefinition nd, NodeExecutionEntity node, String actorName) {
+    private void finishNodeSuccessfully(WorkflowRunEntity run, NodeDefinition nd, NodeExecutionEntity node,
+                                       String actorName, String rationale) {
         node.setStatus(NodeStatus.COMPLETED);
         node.setEndedAt(Instant.now());
         nodeRepo.save(node);
         node.getArtifacts().forEach((k, v) -> run.getContext().put(nd.getId() + "." + k, v));
         runRepo.save(run);
-        audit(run, nd.getId(), Actor.AGENT, EventType.NODE_COMPLETED, "Node completed" + (actorName != null ? " by " + actorName : ""), null);
+        audit(run, nd.getId(), Actor.AGENT, EventType.NODE_COMPLETED,
+                "Node completed" + (actorName != null ? " by " + actorName : ""), rationale);
     }
 
     private void handlePolicyViolation(WorkflowDefinition def, WorkflowRunEntity run, NodeDefinition nd, NodeExecutionEntity node, String reason) {

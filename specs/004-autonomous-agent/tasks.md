@@ -1,21 +1,49 @@
-# Tasks 004 — QR Code Endpoint (autonomous agent run)
+# Tasks 004 — QR Code Endpoint
 
-Dependency-ordered, tagged by SDLC stage. On the autonomous run the `design`–`documentation`
-stages are performed by the `agent` executor (a `claude -p` child per node); a human still
-approves `requirements` and `release_readiness`.
+```
+[requirements] spec.md (raw ask + assumptions A1-A3)   — human approval gate, DONE
+      |
+[design] plan.md                                       — DONE (artifacts.designPath)
+      |
+[implementation]  (agent: real edits + `mvn test` + `git commit`)
+  T1. url-shortener-service/pom.xml: add com.google.zxing:core 3.5.3
+  T2. service/QrCodeGenerationException (unchecked)
+  T3. service/QrCodeRenderer @Component: pngFor(String) -> ZXing BitMatrix ->
+      BufferedImage 256x256 -> ImageIO PNG bytes; wrap Writer/IO errors in T2
+  T4. UrlShortenerService.resolveUnexpired(code): resolve() + spec-003 soft-expire
+      check -> LinkExpiredException  -- depends on nothing new
+  T5. RedirectController.redirect(): use resolveUnexpired(code), drop the inline
+      expiry check (behavior unchanged)  -- depends on T4
+  T6. UrlController: GET /{code}/qr (produces image/png) -> resolveUnexpired +
+      QrCodeRenderer.pngFor(baseUrl + "/" + code); inject QrCodeRenderer
+      -- depends on T3, T4
+      -> `mvn -pl url-shortener-service test` green, then commit
+      |
+[testing]  (depends on implementation commit; parallel with documentation)
+  T7. QrCodeRendererTest: PNG magic header, 256x256 via ImageIO.read,
+      ZXing QRCodeReader round-trips the encoded text (scannable)
+  T8. UrlControllerIntegrationTest additions: /qr happy path -> 200 + image/png +
+      PNG signature; unknown code -> 404
+  T9. Expiry case: past-expiry code -> /qr 410, metadata endpoint still 200
+      (add to RedirectControllerIntegrationTest or UrlControllerIntegrationTest)
+      -> full `mvn test` green
+      |
+[documentation]  (depends on implementation commit; parallel with testing)
+  T10. README + docs: new row in the API table
+       (GET /api/urls/{code}/qr -> 200 image/png, 404, 410 Gone);
+       note ZXing core dependency, 256x256 default, no rate limit / no click
+  T11. docs/architecture.md §6 decisions table: "QR rendered with zxing:core
+       only (no zxing:javase), hand-rolled BitMatrix->PNG"
+      |
+[release_readiness]  (depends on testing + documentation)
+  Human approval gate. Export GET /runs/{id}/audit + /metrics ->
+  docs/scenario-runs/004-autonomous-agent.json
+```
 
-| # | Stage | Task | Depends on |
-|---|---|---|---|
-| 1 | requirements | Approve `spec.md` at the `requirements` gate with `specPath` artifact | — |
-| 2 | design | Produce the QR design (this `plan.md` + `tasks.md`, or the agent's equivalent) as `designPath` | 1 |
-| 3 | implementation | Add ZXing deps; `QrCodeService.pngFor`; `QrController` `GET /api/urls/{code}/qr` (`200` png / `404` / `410`); `mvn -pl url-shortener-service test` green; `git commit` → `commit` artifact | 2 |
-| 4 | testing | `QrCodeServiceTest` (decode round-trip) + `QrControllerIntegrationTest` (200/404/410); `mvn -pl url-shortener-service test` green; write a report under `docs/scenario-runs/` → `testReport` artifact | 3 |
-| 5 | documentation | Add the endpoint row to `README.md` / `docs/` API tables → `docsPath` artifact | 3 |
-| 6 | release_readiness | Human approves release; export audit + metrics to `docs/scenario-runs/004-autonomous-agent.json` | 4, 5 |
+## Acceptance (from spec §3)
 
-## Note
-
-The endpoint code is the point this time — the deliverable is a real feature built by the
-orchestrator driving Claude Code, plus the exported run proving the `agent` executor works end
-to end (real edits, real `mvn test`, real commit, structured result through the same gate).
-Land whatever the `implementation` node produces and keep `mvn test` green.
+- Run reaches `COMPLETED`; audit trail has `NODE_COMPLETED` / `actor: AGENT` rationale for
+  design / implementation / testing / documentation; `implementation` records a real commit sha.
+- `mvn test` green after the run.
+- `GET /api/urls/{code}/qr` returns a scannable PNG for a live code, `404` for an unknown code,
+  `410` for a soft-expired code.

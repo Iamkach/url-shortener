@@ -36,6 +36,7 @@ public class AuditEventEntity {
     @Enumerated(EnumType.STRING)
     private EventType eventType;
 
+    @jakarta.persistence.Column(length = 2000)
     private String message;
 
     @jakarta.persistence.Column(length = 2000)
