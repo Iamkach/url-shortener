@@ -21,7 +21,10 @@ Build/test everything from the repo root:
 ```bash
 mvn test
 ```
-Runs both modules: 15 tests in `orchestrator`, 56 in `url-shortener-service` (71 total).
+Runs both modules: 61 tests in `orchestrator` (15 core governance + 46 executor: parser,
+llm/agent executors, Claude-CLI port, OpenAI-compatible port, provider selection, autonomous
+parallelism, the PreToolUse hook), 56 in `url-shortener-service` (117 total). All offline —
+no network, no subprocess (`OrchGuardHookTest` skips itself if no `python`).
 
 Run a single module's tests:
 ```bash
@@ -52,8 +55,12 @@ cd url-shortener-service && mvn spring-boot:run
 orchestrator/            DAG/state-machine SDLC orchestration engine (port 8081)
 url-shortener-service/   The URL shortener product (port 8080)
 specs/                   spec.md / plan.md / tasks.md per feature, spec-driven
+.claude/                 always-on PreToolUse edit-governance hook (hooks/orch_guard.py +
+                         hooks/README.md), constrained sdlc-testing / sdlc-documentation
+                         agent profiles, the /sdlc-run harness skill (skills/sdlc-run/)
 docs/
   architecture.md          components, orchestration model, control flow, key decisions
+  executor-seam-walkthrough.md  the NodeExecutor seam (manual/scripted/llm/agent), from scratch
   engineering-summary.md   plan/rationale, risks, assumptions, limitations
   testing-and-tradeoffs.md testing approach, limitations, trade-offs
   scenario-runs/           exported orchestrator audit logs + metrics, one per scenario
@@ -80,11 +87,33 @@ Workflow definitions live in `orchestrator/src/main/resources/workflows/*.yaml`
 `design` → `implementation` → {`testing`, `documentation`} in parallel → `release_readiness`
 (human gate)).
 
-**Core principle — controlled autonomy:** the engine coordinates, it never executes. A node's
-actual work (writing a spec, code, tests, docs) happens outside the JVM, by a human or an agent;
-`WorkflowEngine` only decides *when* a node may run, tracks its state, and enforces governance via
-`complete`/`fail`/`approve`/`reject` calls on its REST API. Never wire the engine up to call out to
-do work directly — that inverts the design the whole test suite is built around.
+**Core principle — controlled autonomy:** the engine's *core* coordinates, it never does a node's
+SDLC work itself. `WorkflowEngine` only decides *when* a node may run, tracks its state, and
+enforces governance via `complete`/`fail`/`approve`/`reject`. The work reaches a node through a
+pluggable `NodeExecutor` (`engine/executor/`), selected per node (`executor:` in the workflow YAML)
+or globally (`orchestrator.executor.mode`):
+- **`manual`** (default) — engine waits for an external REST callback. **All 15 core engine tests
+  run in this mode: zero network, deterministic. Keep it the default; never make `llm`/`agent` the
+  default or route the engine's own logic through a model.**
+- **`agent`** — `AgentNodeExecutor` spawns Claude Code headless (`claude -p --output-format json`)
+  as the node's worker via `AgentInvocationPort` → `ClaudeCliAgentPort` → `ProcessRunner`: real
+  Read/Edit/Bash, `mvn test`, `git commit`. Agent-agnostic (`ORCH_AGENT_CMD`). Result JSON parsed
+  by the shared `NodeResultParser`; any failure (non-zero exit, timeout, unparseable) → `fail(...)`.
+  Only when `orchestrator.executor.mode=agent`.
+- **`llm`** — `LlmNodeExecutor` + a `ChatPort` make one Messages API call. Provider-agnostic:
+  `orchestrator.executor.llm.provider` = `anthropic` (`AnthropicChatPort`, default) or
+  `openai-compatible` (`OpenAiCompatibleChatPort`). Only when `orchestrator.executor.mode=llm`.
+- All of `agent` / `AnthropicChatPort` / `OpenAiCompatibleChatPort` are `@ConditionalOnProperty` —
+  the default boot instantiates none of them (no CLI, no key needed).
+- On an `autonomous: true` run, `NodeDispatchListener` picks up a dispatched non-`manual` node
+  after commit, runs its executor on a bounded pool (`nodeExecutorPool`), and feeds the result back
+  through `complete`/`fail`. When `implementation` completes, `testing` + `documentation` run their
+  executors concurrently. Human approval gates still block. Governance is identical in every mode —
+  don't add a code path that lets an executor bypass `PolicyEngine`, retry, fallback, or rollback.
+- The committed `.claude/` `PreToolUse` hook enforces the converse on any Claude Code session in
+  this repo: no edit to `*/src/**` or `specs/**` unless `ORCH_RUN_ID` is set and the path is in the
+  node stage's `ORCH_ALLOW_PATHS`. Docs/meta (`CLAUDE.md`, `README.md`, `.gitignore`,
+  `docs/**/*.md`, root `*.md`) always editable.
 
 **State machine behaviors to know before touching `WorkflowEngine`:**
 - **Retry**: bounded by `maxRetries`; `fail()` moves the node to `RETRYING` and immediately

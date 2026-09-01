@@ -4,10 +4,16 @@
 
 The assignment states plainly that the URL shortener is the vehicle and the
 orchestration layer is what's graded. The build order followed from that: the
-orchestrator was designed and fully tested (15 tests, in isolation, against synthetic
-fixtures) **before** any URL-shortener feature work started, so the engine's governance
-guarantees (parallel sync, retry/fallback/rollback, safe-stop, re-plan, policy gates,
-audit trail, metrics) were proven independent of whatever the product ended up needing.
+orchestrator was designed and fully tested (15 core governance tests, in isolation, against
+synthetic fixtures) **before** any URL-shortener feature work started, so the engine's
+governance guarantees (parallel sync, retry/fallback/rollback, safe-stop, re-plan, policy
+gates, audit trail, metrics) were proven independent of whatever the product ended up
+needing. A later addition — a pluggable `NodeExecutor` seam (`docs/architecture.md` §3.1) with an
+`agent` executor that spawns Claude Code (`claude -p`) as the node's worker, a
+provider-agnostic `llm` executor, an autonomous run mode, and an always-on `PreToolUse`
+edit-governance hook — added 46 more executor tests without changing that core; all beans are
+`@ConditionalOnProperty` and `manual` execution stays the default, so the governance suite
+stays deterministic and network-free.
 
 Everything after that followed a **spec-driven** loop, repeated for each of the three
 required scenario types:
@@ -31,7 +37,7 @@ greenfield/brownfield/ambiguous.
 ## 2. Artifacts Produced
 
 - **Working prototype**: two independently runnable Spring Boot services
-  (`orchestrator`, `url-shortener-service`), 71 automated tests, `mvn test` green.
+  (`orchestrator`, `url-shortener-service`), 117 automated tests, `mvn test` green.
 - **Orchestration engine**: `orchestrator/` — DAG/state-machine, human gates, retry/
   fallback/rollback, safe-stop, dynamic re-plan, policy guardrails, audit trail,
   reliability metrics. See `docs/architecture.md`.
@@ -59,7 +65,7 @@ Full table in `docs/testing-and-tradeoffs.md` §3-4. Highlights:
   short codes, in-memory single-instance rate limiting, fire-and-forget async click
   recording, soft-expire instead of a purge job, no auth model anywhere. Each has a
   documented reason and a documented "what would change it."
-- **Validation performed**: 71 unit/integration tests; three live orchestrator runs with
+- **Validation performed**: 117 unit/integration tests; three live orchestrator runs with
   exported, committed audit logs; the orchestrator's own aggregate `/metrics` endpoint
   confirmed correct across all three runs (3/3 completed, 100% success rate, consistent
   retry/rollback counts).
@@ -74,9 +80,11 @@ requirement they resolve. Cross-cutting assumptions:
   limiter decisions).
 - No authentication/authorization model is in scope (drives the short-code enumerability
   and link-ownership trade-offs).
-- "Controlled autonomy" means the orchestrator dispatches and governs; a human or an
-  agent (me, in this build) performs the actual work and reports back — the engine is
-  never itself the thing writing code or tests.
+- "Controlled autonomy" means the orchestrator's *core* dispatches and governs; the actual
+  work is done by a pluggable `NodeExecutor` and reported back through the same
+  `complete`/`fail` + gates. In `manual` mode (scenarios 001–003) that worker is a human or
+  an agent driving the REST API; in `agent` mode (spec 004) the orchestrator spawns Claude
+  Code per node. Either way the engine is never itself the thing writing code or tests.
 
 ## 5. Limitations
 

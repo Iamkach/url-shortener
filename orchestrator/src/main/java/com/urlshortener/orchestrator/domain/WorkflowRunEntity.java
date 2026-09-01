@@ -43,6 +43,12 @@ public class WorkflowRunEntity {
     private String createdBy;
 
     /**
+     * When true, a dispatched non-{@code manual} node is picked up automatically by its
+     * {@code NodeExecutor} instead of waiting for a REST callback. Human approval gates still block.
+     */
+    private boolean autonomous;
+
+    /**
      * Decision-lineage context shared across stages. Namespaced as {@code nodeId.artifactKey}
      * when a node completes, so downstream gates can reference upstream outputs unambiguously.
      */
@@ -55,10 +61,12 @@ public class WorkflowRunEntity {
     @Version
     private Long version;
 
-    public WorkflowRunEntity(String id, String workflowDefinitionId, String createdBy, Map<String, String> initialContext) {
+    public WorkflowRunEntity(String id, String workflowDefinitionId, String createdBy,
+                             Map<String, String> initialContext, boolean autonomous) {
         this.id = id;
         this.workflowDefinitionId = workflowDefinitionId;
         this.createdBy = createdBy;
+        this.autonomous = autonomous;
         this.status = RunStatus.RUNNING;
         this.startedAt = Instant.now();
         if (initialContext != null) {

@@ -2,10 +2,10 @@
 
 ## 1. Testing Approach
 
-**71 automated tests total** (`mvn test` from the repo root), no manual-only coverage
+**117 automated tests total** (`mvn test` from the repo root), no manual-only coverage
 claimed anywhere in this write-up.
 
-### `orchestrator` — 15 tests
+### `orchestrator` — 61 tests (15 core governance + 46 executor)
 
 | Class | Focus |
 |---|---|
@@ -13,6 +13,16 @@ claimed anywhere in this write-up.
 | `WorkflowEngineDiamondTest` | `@SpringBootTest` against a dedicated `test-diamond.yaml` fixture (A → {B, C} → D, C has a fallback, D is a human gate): parallel dispatch + join synchronization, retry exhaustion → rollback, approval rejection → rollback, fallback triggering, dynamic re-plan (`invalidate`), pause/resume safe-stop. |
 | `WorkflowEnginePolicyAndSdlcTest` | Entry-gate denial (`test-gate.yaml`), exit-gate denial on missing artifact, and a full `sdlc-standard` happy path asserting namespaced context propagation across every stage. |
 | `MetricsServiceTest` | Retry/rollback counts and aggregate success rate computed correctly from a real run's audit trail. |
+| `NodeExecutorRegistryTest` | Executor selection: node-level `executor:` overrides global mode, fallback to `manual` when a requested executor has no bean, `agent` resolves when its bean is present, `validate()` rejects an unknown executor name. |
+| `NodeResultParserTest` | The worker-reply contract shared by `llm` and `agent`: status/artifact extraction, fence/prose tolerance, malformed / unknown-status / null → `fail`. |
+| `LlmNodeExecutorTest` | Prompt assembly carries upstream namespaced context; model-call exception → `fail`; per-run budget exhaustion → `fail`. Uses a fake `ChatPort` — no network. |
+| `AgentNodeExecutorTest` | Fake `AgentInvocationPort`: complete-envelope parse + context threading + stage → tools/paths derivation; non-zero exit / timeout / port exception / unparseable → `fail`; budget exhaustion → `fail`; DOCUMENTATION stage gets narrower tools + its own paths. No subprocess. |
+| `ClaudeCliAgentPortTest` | Fake `ProcessRunner`: `argsTemplate` `{repoDir}`/`{allowedTools}` rendering, `ORCH_*` env export, prompt via stdin vs trailing arg, `timedOut`/`exitCode` passthrough. |
+| `OpenAiCompatibleChatPortTest` | In-process `com.sun.net.httpserver` stub: OpenAI-shaped request body, bearer token from the configured env var, HTTP 500 → `RuntimeException`, missing `base-url` rejected. |
+| `ChatPortProviderSelectionTest` | `ApplicationContextRunner`: `provider=anthropic` (default) → `AnthropicChatPort`; `openai-compatible` selects the other and excludes Anthropic; no `ChatPort` bean outside `mode=llm`. |
+| `WorkflowEngineAutonomousTest` | `@SpringBootTest` driving `test-autonomous.yaml` end to end with a deterministic `ScriptedNodeExecutor`: non-gate nodes execute with no REST callback, both human gates still block, and a scripted first-attempt failure still drives `RETRY_ATTEMPTED` → recovery. |
+| `WorkflowEngineAgentParallelTest` | `@SpringBootTest` + `test-agent-parallel.yaml` + a latched fake `AgentInvocationPort`: `testing` and `documentation` must meet at a 2-party `CyclicBarrier` (serial execution → the first never clears it → node fails), proving real concurrency on `nodeExecutorPool`; both human gates still block; audit carries `Actor.AGENT`. |
+| `OrchGuardHookTest` | Shells the real `.claude/hooks/orch_guard.py` with crafted stdin+env: deny product path with no `ORCH_RUN_ID`, allow `CLAUDE.md` always, deny out-of-stage path in a run, allow in-stage path. `assumeTrue`-skips if no `python`. |
 
 These are deliberately **engine tests against synthetic fixtures**, not just "the three
 scenarios happened to work." The synthetic fixtures let retry/rollback/fallback/replan

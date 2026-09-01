@@ -37,7 +37,8 @@ public class RunController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RunResponse start(@Valid @RequestBody StartRunRequest request) {
-        WorkflowRunEntity run = engine.startRun(request.workflowDefinitionId(), request.initialContext(), request.createdBy());
+        WorkflowRunEntity run = engine.startRun(request.workflowDefinitionId(), request.initialContext(),
+                request.createdBy(), request.autonomous());
         return toResponse(run.getId());
     }
 

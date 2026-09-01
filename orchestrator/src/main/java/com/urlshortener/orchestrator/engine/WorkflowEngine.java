@@ -10,12 +10,14 @@ import com.urlshortener.orchestrator.domain.NodeExecutionEntity;
 import com.urlshortener.orchestrator.domain.NodeStatus;
 import com.urlshortener.orchestrator.domain.RunStatus;
 import com.urlshortener.orchestrator.domain.WorkflowRunEntity;
+import com.urlshortener.orchestrator.engine.executor.NodeDispatchedEvent;
 import com.urlshortener.orchestrator.policy.PolicyEngine;
 import com.urlshortener.orchestrator.policy.PolicyResult;
 import com.urlshortener.orchestrator.repository.AuditEventRepository;
 import com.urlshortener.orchestrator.repository.NodeExecutionRepository;
 import com.urlshortener.orchestrator.repository.WorkflowRunRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,7 @@ public class WorkflowEngine {
     private final AuditEventRepository auditRepo;
     private final WorkflowDefinitionRegistry registry;
     private final PolicyEngine policyEngine;
+    private final ApplicationEventPublisher events;
 
     private final Map<String, Object> runLocks = new ConcurrentHashMap<>();
 
@@ -94,10 +97,16 @@ public class WorkflowEngine {
 
     @Transactional
     public WorkflowRunEntity startRun(String workflowDefinitionId, Map<String, String> initialContext, String createdBy) {
+        return startRun(workflowDefinitionId, initialContext, createdBy, false);
+    }
+
+    @Transactional
+    public WorkflowRunEntity startRun(String workflowDefinitionId, Map<String, String> initialContext,
+                                     String createdBy, boolean autonomous) {
         WorkflowDefinition def = registry.require(workflowDefinitionId);
         String runId = UUID.randomUUID().toString();
         synchronized (lockFor(runId)) {
-            WorkflowRunEntity run = new WorkflowRunEntity(runId, def.getId(), createdBy, initialContext);
+            WorkflowRunEntity run = new WorkflowRunEntity(runId, def.getId(), createdBy, initialContext, autonomous);
             runRepo.save(run);
             for (NodeDefinition nd : def.getNodes()) {
                 nodeRepo.save(new NodeExecutionEntity(UUID.randomUUID().toString(), runId, nd.getId()));
@@ -418,6 +427,9 @@ public class WorkflowEngine {
             nodeRepo.save(node);
             audit(run, nd.getId(), Actor.SYSTEM, EventType.NODE_DISPATCHED,
                     "Node dispatched to agent (attempt " + node.getAttempt() + ")", null);
+            // Fires only after this transaction commits (see NodeDispatchListener). For a manual
+            // node / non-autonomous run it is a no-op; otherwise the node's NodeExecutor picks it up.
+            events.publishEvent(new NodeDispatchedEvent(run.getId(), nd.getId()));
         }
     }
 

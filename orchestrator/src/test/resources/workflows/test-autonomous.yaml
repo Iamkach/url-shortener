@@ -1,0 +1,49 @@
+id: test-autonomous
+name: Autonomous test fixture (human gate -> scripted design/impl -> parallel scripted test/docs -> human gate)
+nodes:
+  - id: reqs
+    stage: REQUIREMENTS
+    dependsOn: []
+    requiresApproval: true
+    maxRetries: 0
+    exitGate: "requireArtifact:specPath"
+
+  - id: design
+    stage: DESIGN
+    dependsOn: [reqs]
+    maxRetries: 1
+    executor: scripted
+    entryGate: "requireContext:reqs.specPath"
+    exitGate: "requireArtifact:designPath"
+
+  - id: impl
+    stage: IMPLEMENTATION
+    dependsOn: [design]
+    maxRetries: 2
+    compensation: true
+    executor: scripted
+    entryGate: "requireContext:design.designPath"
+    exitGate: "requireArtifact:commit"
+
+  - id: test
+    stage: TESTING
+    dependsOn: [impl]
+    maxRetries: 2
+    executor: scripted
+    entryGate: "requireContext:impl.commit"
+    exitGate: "requireArtifact:testReport"
+
+  - id: docs
+    stage: DOCUMENTATION
+    dependsOn: [impl]
+    maxRetries: 1
+    executor: scripted
+    entryGate: "requireContext:impl.commit"
+    exitGate: "requireArtifact:docsPath"
+
+  - id: release
+    stage: RELEASE_READINESS
+    dependsOn: [test, docs]
+    requiresApproval: true
+    maxRetries: 0
+    entryGate: "requireContext:test.testReport"
